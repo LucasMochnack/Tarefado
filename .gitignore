@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+.nodeenv/
+
+# Build
+dist/
+
+# Arquivos sensíveis
+MANUAL-DE-MARCA-ALTO-VALOR-INVESTIMENTOS.pdf
+tmp_*.png
+
+# Ambiente
+.env
+.env.local

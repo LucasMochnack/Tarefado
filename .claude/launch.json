@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tarefado",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/c", "C:\\Users\\lucas.mochnack.MANHATTAN\\Grupo Alto Valor Dropbox\\Lucas Mochnack\\PC\\Downloads\\Claude\\Tarefado\\start-dev.cmd"],
+      "port": 5173
+    }
+  ]
+}
