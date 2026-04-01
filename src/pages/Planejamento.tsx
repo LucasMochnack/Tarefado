@@ -48,7 +48,7 @@ const PRIORIDADES: { nivel: NivelPrioridade; label: string; cell: string; badge:
   { nivel: 'media',   label: 'Média',   cell: 'bg-emerald-500 dark:bg-emerald-400', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' },
   { nivel: 'baixa',   label: 'Baixa',   cell: 'bg-emerald-500 dark:bg-emerald-400', badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
 ]
-const HORAS = ['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00']
+const HORAS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00']
 
 const W = { tarefa: 160, time: 80, prior: 60, hora: 58, horaFim: 58, inicio: 58, fim: 58 }
 const L = {
