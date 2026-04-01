@@ -257,6 +257,7 @@ const HORA_SLOTS = [
   { hora: '09:00', label: '', period: 'morning' },
   { hora: '10:00', label: '', period: 'morning' },
   { hora: '11:00', label: '', period: 'morning' },
+  { hora: '12:00', label: '', period: 'morning' },
   { hora: '13:00', label: '', period: 'afternoon' },
   { hora: '14:00', label: '', period: 'afternoon' },
   { hora: '15:00', label: '', period: 'afternoon' },
@@ -329,8 +330,8 @@ function distribuirTarefasNosSlots(tarefas: Tarefa[]): Record<string, Tarefa[]> 
     alocadas.add(t.id)
   })
 
-  // 6. Restantes não alocadas → distribuir a partir de 09:00 (sem 12:00)
-  const fallbackSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00']
+  // 6. Restantes não alocadas → distribuir a partir de 09:00
+  const fallbackSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
   restantes.filter(t => !alocadas.has(t.id)).forEach((t, i) => {
     slots[fallbackSlots[i % fallbackSlots.length]].push(t)
   })
