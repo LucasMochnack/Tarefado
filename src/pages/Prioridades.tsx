@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Target, RefreshCw, Filter, X, GripVertical, Zap, Clock, Trash2, Calendar } from 'lucide-react'
+import { Target, RefreshCw, Filter, X, GripVertical, Zap, Clock, Trash2, Calendar, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { Tarefa, Time, NivelPrioridade, QuadranteEisenhower } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
+import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
@@ -80,6 +81,7 @@ const QUADRANTES: {
 export function Prioridades() {
   const { tarefas, projetos, recalcularPrioridades, updateTarefa } = useStore()
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
+  const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState<Time | ''>('')
   const [nivelFilter, setNivelFilter] = useState<NivelPrioridade | ''>('')
   const [showFilters, setShowFilters] = useState(false)
@@ -255,9 +257,18 @@ export function Prioridades() {
           onDrop={e => handleDrop(e, 'backlog')}
         >
           <div className="px-4 pt-4 pb-2 flex-shrink-0">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-              Backlog
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Tarefas
+              </h3>
+              <button
+                onClick={() => setTaskFormOpen(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-medium transition-colors"
+                title="Nova tarefa"
+              >
+                <Plus size={11} /> Nova
+              </button>
+            </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Arraste para um quadrante</p>
           </div>
           <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5 min-h-0">
@@ -281,6 +292,7 @@ export function Prioridades() {
       </div>
 
       <TaskDetailsDrawer tarefa={selectedTarefa} onClose={() => setSelectedTarefa(null)} />
+      <TaskFormModal open={taskFormOpen} onOpenChange={setTaskFormOpen} />
     </div>
   )
 }
