@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Filter, X, RefreshCw } from 'lucide-react'
+import { Filter, X, RefreshCw, Plus } from 'lucide-react'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { FiltrosTarefa, StatusTarefa, NivelPrioridade, Time } from '@/types'
 import { useStore } from '@/store/useStore'
@@ -7,7 +7,17 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { RESPONSAVEIS } from '@/data/mockData'
 import { cn } from '@/lib/utils'
-import { Plus } from 'lucide-react'
+
+const TODOS_TIMES: { value: Time; label: string }[] = [
+  { value: 'alta-renda', label: 'Alta Renda' },
+  { value: 'varejo', label: 'Varejo' },
+  { value: 'on-demand', label: 'On Demand' },
+  { value: 'b2c', label: 'B2C' },
+  { value: 'campinas', label: 'Campinas' },
+  { value: 'produtos', label: 'Produtos' },
+  { value: 'performance', label: 'Performance' },
+  { value: 'geral', label: 'Geral' },
+]
 
 export function Kanban() {
   const { projetos, recalcularPrioridades } = useStore()
@@ -74,14 +84,41 @@ export function Kanban() {
         </div>
       </div>
 
-      {/* Filters row */}
+      {/* Filtro de time — sempre visível */}
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-6 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+        <button
+          onClick={() => setFiltros(f => ({ ...f, time: undefined }))}
+          className={cn(
+            'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+            !filtros.time
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+          )}
+        >
+          Todos
+        </button>
+        {TODOS_TIMES.map(t => (
+          <button
+            key={t.value}
+            onClick={() => setFiltros(f => ({ ...f, time: f.time === t.value ? undefined : t.value as Time }))}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+              filtros.time === t.value
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters avançados */}
       {showFilters && (
         <div className="flex-shrink-0 flex flex-wrap gap-3 px-6 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
           <select value={filtros.time || ''} onChange={e => setFiltros(f => ({ ...f, time: e.target.value as Time || undefined }))} className={selectClass}>
             <option value="">Todos os times</option>
-            <option value="b2c">B2C</option>
-            <option value="campinas">Campinas</option>
-            <option value="produtos">Produtos</option>
+            {TODOS_TIMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <select value={filtros.projeto || ''} onChange={e => setFiltros(f => ({ ...f, projeto: e.target.value || undefined }))} className={selectClass}>
             <option value="">Todos os projetos</option>

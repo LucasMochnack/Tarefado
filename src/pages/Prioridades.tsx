@@ -163,13 +163,43 @@ export function Prioridades() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtro de time — sempre visível */}
+      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <button
+          onClick={() => setTimeFilter('')}
+          className={cn(
+            'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+            timeFilter === ''
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+          )}
+        >
+          Todos
+        </button>
+        {TODOS_TIMES.map(t => (
+          <button
+            key={t.value}
+            onClick={() => setTimeFilter(prev => prev === t.value ? '' : t.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+              timeFilter === t.value
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+        {nivelFilter && (
+          <button onClick={() => setNivelFilter('')} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors ml-1">
+            <X size={12} /> Limpar nível
+          </button>
+        )}
+      </div>
+
+      {/* Filtros avançados */}
       {showFilters && (
         <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0">
-          <select value={timeFilter} onChange={e => setTimeFilter(e.target.value as Time | '')} className={selectClass}>
-            <option value="">Todos os times</option>
-            {TODOS_TIMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
           <select value={nivelFilter} onChange={e => setNivelFilter(e.target.value as NivelPrioridade | '')} className={selectClass}>
             <option value="">Todos os níveis</option>
             <option value="critica">🔴 Crítica</option>

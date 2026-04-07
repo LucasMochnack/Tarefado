@@ -8,7 +8,6 @@ import { useState } from 'react'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/projetos', icon: FolderKanban, label: 'Projetos' },
   {
     to: '/times', icon: Users, label: 'Times', children: [
@@ -20,6 +19,7 @@ const navItems = [
   },
   { to: '/planejamento', icon: GanttChart, label: 'Planejamento' },
   { to: '/prioridades', icon: Target, label: 'Prioridades' },
+  { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/tarefas', icon: ListTodo, label: 'Tarefas' },
   { to: '/configuracoes', icon: Settings, label: 'Configurações' },
 ]
