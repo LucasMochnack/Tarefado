@@ -1,14 +1,33 @@
-import { Sun, Moon, Trash2, RefreshCw, Database, Zap } from 'lucide-react'
+import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, RepeatIcon, Users, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { RecorrenteFormModal } from '@/components/tasks/RecorrenteFormModal'
 import { useState } from 'react'
+import { TarefaRecorrente } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
+const CORES_USUARIO = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
+  '#f97316', '#f59e0b', '#10b981', '#06b6d4',
+  '#3b82f6', '#64748b',
+]
+
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
 export function Configuracoes() {
-  const { darkMode, toggleDarkMode, tarefas, projetos, recalcularPrioridades } = useStore()
+  const {
+    darkMode, toggleDarkMode,
+    tarefas, projetos,
+    recalcularPrioridades,
+    usuarios, updateUsuario,
+    tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente,
+  } = useStore()
+
   const [resetOpen, setResetOpen] = useState(false)
+  const [recorrenteModal, setRecorrenteModal] = useState(false)
+  const [editandoRecorrente, setEditandoRecorrente] = useState<TarefaRecorrente | undefined>()
 
   const handleReset = () => {
     useStore.setState({ tarefas: TAREFAS_INICIAIS, projetos: PROJETOS_INICIAIS })
@@ -18,6 +37,23 @@ export function Configuracoes() {
   const handleClearAll = () => {
     useStore.setState({ tarefas: [], projetos: [] })
     toast.success('Todos os dados foram limpos!')
+  }
+
+  const openNovaRecorrente = () => {
+    setEditandoRecorrente(undefined)
+    setRecorrenteModal(true)
+  }
+
+  const openEditarRecorrente = (r: TarefaRecorrente) => {
+    setEditandoRecorrente(r)
+    setRecorrenteModal(true)
+  }
+
+  const descRecorrencia = (r: TarefaRecorrente) => {
+    if (r.tipoRecorrencia === 'diaria') return 'Todos os dias'
+    if (r.tipoRecorrencia === 'mensal') return `Todo dia ${r.diaMes}`
+    const dias = r.diasSemana.sort().map(d => DIAS_SEMANA[d]).join(', ')
+    return `Toda ${dias}`
   }
 
   return (
@@ -52,11 +88,96 @@ export function Configuracoes() {
         </div>
       </Section>
 
+      {/* Usuários e Cores */}
+      <Section title="Usuários">
+        <div className="space-y-3">
+          {usuarios.map(u => (
+            <div key={u.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                style={{ backgroundColor: u.cor ?? '#6366f1' }}
+              >
+                {u.nome.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.nome}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <p className="text-xs text-slate-400 mr-1">Cor:</p>
+                {CORES_USUARIO.map(cor => (
+                  <button
+                    key={cor}
+                    onClick={() => { updateUsuario(u.id, { cor }); toast.success('Cor atualizada!') }}
+                    className={cn(
+                      'w-5 h-5 rounded-full transition-transform hover:scale-110',
+                      u.cor === cor && 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-600'
+                    )}
+                    style={{ backgroundColor: cor }}
+                    title={cor}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Tarefas Recorrentes */}
+      <Section title="Tarefas Recorrentes">
+        <div className="space-y-2">
+          {tarefasRecorrentes.length === 0 && (
+            <p className="text-sm text-slate-400 dark:text-slate-500 italic py-2">Nenhuma tarefa recorrente configurada.</p>
+          )}
+          {tarefasRecorrentes.map(r => (
+            <div key={r.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl group">
+              <div className={cn('mt-1 w-2 h-2 rounded-full flex-shrink-0', r.ativa ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{r.titulo}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {descRecorrencia(r)}
+                  {r.horaAgenda && ` · ${r.horaAgenda}`}
+                  {r.responsavel && ` · ${r.responsavel}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => updateTarefaRecorrente(r.id, { ativa: !r.ativa })}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 transition-colors"
+                  title={r.ativa ? 'Desativar' : 'Ativar'}
+                >
+                  {r.ativa ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                </button>
+                <button
+                  onClick={() => openEditarRecorrente(r)}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  onClick={() => { deleteTarefaRecorrente(r.id); toast.success('Removida!') }}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={openNovaRecorrente}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-sm text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+          >
+            <Plus size={14} /> Nova tarefa recorrente
+          </button>
+        </div>
+      </Section>
+
       {/* Dados */}
       <Section title="Dados e Persistência">
         <div className="space-y-3">
           <InfoRow label="Total de tarefas" value={tarefas.length.toString()} />
           <InfoRow label="Total de projetos" value={projetos.length.toString()} />
+          <InfoRow label="Tarefas recorrentes" value={tarefasRecorrentes.length.toString()} />
           <InfoRow label="Armazenamento" value="localStorage (local)" />
           <InfoRow label="Persistência" value="Automática" />
         </div>
@@ -115,6 +236,12 @@ export function Configuracoes() {
         description="Esta ação removerá TODAS as tarefas e projetos permanentemente. Tem certeza?"
         confirmLabel="Limpar tudo"
         onConfirm={handleClearAll}
+      />
+
+      <RecorrenteFormModal
+        open={recorrenteModal}
+        onOpenChange={setRecorrenteModal}
+        recorrente={editandoRecorrente}
       />
     </div>
   )

@@ -1,4 +1,6 @@
 export type StatusTarefa = 'a-fazer' | 'em-andamento' | 'aguardando' | 'concluido'
+export type TipoRecorrencia = 'diaria' | 'semanal' | 'mensal'
+export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6
 export type NivelPrioridade = 'critica' | 'alta' | 'media' | 'baixa'
 export type Time = 'on-demand' | 'alta-renda' | 'varejo' | 'b2c' | 'campinas' | 'produtos' | 'geral' | 'performance'
 export type QuadranteEisenhower =
@@ -61,6 +63,24 @@ export interface Projeto {
   time: Time
   criadoEm: string
   atualizadoEm: string
+}
+
+export interface TarefaRecorrente {
+  id: string
+  titulo: string
+  descricao: string
+  prioridade: NivelPrioridade
+  time: Time
+  responsavel: string
+  projetoId: string
+  tags: string[]
+  tipoRecorrencia: TipoRecorrencia
+  diasSemana: DiaSemana[]
+  diaMes: number
+  horaAgenda?: string
+  ativa: boolean
+  ultimaCriacao: string
+  criadoEm: string
 }
 
 export interface HistoricoItem {

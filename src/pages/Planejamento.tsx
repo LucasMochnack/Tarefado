@@ -720,7 +720,7 @@ export function Planejamento() {
       </div>
 
       {selectedTarefa && (
-        <TaskDetailsDrawer tarefa={selectedTarefa} onClose={() => setSelectedTarefa(null)} onEdit={() => {}} />
+        <TaskDetailsDrawer tarefa={selectedTarefa} onClose={() => setSelectedTarefa(null)} />
       )}
     </div>
   )

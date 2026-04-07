@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Tarefa, Projeto, StatusTarefa } from '@/types'
+import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana } from '@/types'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { calcularScore, calcularProgressoProjeto } from '@/utils/priority'
 import { todayISO } from '@/utils/dates'
@@ -11,6 +11,7 @@ export interface Usuario {
   email: string
   senha: string
   admin: boolean
+  cor?: string
 }
 
 const USUARIO_PADRAO: Usuario = {
@@ -25,6 +26,7 @@ interface AppStore {
   tarefas: Tarefa[]
   projetos: Projeto[]
   usuarios: Usuario[]
+  tarefasRecorrentes: TarefaRecorrente[]
   darkMode: boolean
   autenticado: boolean
   usuarioNome: string
@@ -41,6 +43,11 @@ interface AppStore {
   deleteTarefa: (id: string) => void
   moveTarefa: (id: string, novoStatus: StatusTarefa) => void
   recalcularPrioridades: () => void
+
+  addTarefaRecorrente: (dados: Omit<TarefaRecorrente, 'id' | 'criadoEm' | 'ultimaCriacao'>) => void
+  updateTarefaRecorrente: (id: string, data: Partial<TarefaRecorrente>) => void
+  deleteTarefaRecorrente: (id: string) => void
+  processarRecorrentes: () => void
 
   addProjeto: (projeto: Omit<Projeto, 'id' | 'criadoEm' | 'atualizadoEm' | 'progresso'>) => void
   updateProjeto: (id: string, data: Partial<Projeto>) => void
@@ -73,6 +80,7 @@ export const useStore = create<AppStore>()(
       tarefas: TAREFAS_INICIAIS,
       projetos: PROJETOS_INICIAIS,
       usuarios: [USUARIO_PADRAO],
+      tarefasRecorrentes: [],
       darkMode: false,
       autenticado: false,
       usuarioNome: '',
@@ -157,6 +165,72 @@ export const useStore = create<AppStore>()(
         get().updateTarefa(id, { status: novoStatus })
       },
 
+      addTarefaRecorrente: (dados) => {
+        const nova: TarefaRecorrente = {
+          ...dados,
+          id: `rec-${gerarId()}`,
+          ultimaCriacao: '',
+          criadoEm: todayISO(),
+        }
+        set(state => ({ tarefasRecorrentes: [...state.tarefasRecorrentes, nova] }))
+      },
+
+      updateTarefaRecorrente: (id, data) => {
+        set(state => ({
+          tarefasRecorrentes: state.tarefasRecorrentes.map(r => r.id === id ? { ...r, ...data } : r),
+        }))
+      },
+
+      deleteTarefaRecorrente: (id) => {
+        set(state => ({ tarefasRecorrentes: state.tarefasRecorrentes.filter(r => r.id !== id) }))
+      },
+
+      processarRecorrentes: () => {
+        const today = new Date()
+        const todayStr = todayISO()
+        const diaSemana = today.getDay() as DiaSemana
+        const diaMes = today.getDate()
+        const { tarefasRecorrentes } = get()
+
+        tarefasRecorrentes.forEach(tr => {
+          if (!tr.ativa) return
+          if (tr.ultimaCriacao === todayStr) return
+
+          let deveCriar = false
+          if (tr.tipoRecorrencia === 'diaria') {
+            deveCriar = true
+          } else if (tr.tipoRecorrencia === 'semanal') {
+            deveCriar = tr.diasSemana.includes(diaSemana)
+          } else if (tr.tipoRecorrencia === 'mensal') {
+            deveCriar = tr.diaMes === diaMes
+          }
+
+          if (deveCriar) {
+            get().addTarefa({
+              titulo: tr.titulo,
+              descricao: tr.descricao,
+              prioridade: tr.prioridade,
+              nivelPrioridade: tr.prioridade,
+              time: tr.time,
+              responsavel: tr.responsavel,
+              projetoId: tr.projetoId,
+              tags: tr.tags,
+              status: 'a-fazer',
+              prazo: todayStr,
+              horaAgenda: tr.horaAgenda,
+              checklist: [],
+              comentarios: [],
+              cor: undefined,
+              dataInicio: todayStr,
+              quadranteEisenhower: undefined,
+              scorePrioridade: 0,
+              motivoPrioridade: '',
+            } as any)
+            get().updateTarefaRecorrente(tr.id, { ultimaCriacao: todayStr })
+          }
+        })
+      },
+
       recalcularPrioridades: () => {
         const { projetos } = get()
         set(state => ({
@@ -201,6 +275,7 @@ export const useStore = create<AppStore>()(
         tarefas: state.tarefas,
         projetos: state.projetos,
         usuarios: state.usuarios,
+        tarefasRecorrentes: state.tarefasRecorrentes,
         darkMode: state.darkMode,
         autenticado: state.autenticado,
         usuarioNome: state.usuarioNome,

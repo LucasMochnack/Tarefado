@@ -1,15 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
-  X, Edit2, Trash2, Calendar, User, Tag, Folder, Clock,
-  MessageSquare, CheckSquare, Plus, Send, ChevronDown, AlertCircle
+  X, Trash2, Calendar, User, Tag, Folder, Clock,
+  MessageSquare, CheckSquare, Plus, Send, AlertCircle, Check, Pencil
 } from 'lucide-react'
-import { Tarefa, StatusTarefa } from '@/types'
+import { Tarefa, StatusTarefa, Time, NivelPrioridade } from '@/types'
 import { useStore } from '@/store/useStore'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge, ScoreBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
-import { TaskFormModal } from './TaskFormModal'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { formatDate, formatRelative, isOverdue, prazoLabel } from '@/utils/dates'
 import { todayISO } from '@/utils/dates'
@@ -21,9 +20,164 @@ interface TaskDetailsDrawerProps {
   onClose: () => void
 }
 
+const TIMES: { value: Time; label: string }[] = [
+  { value: 'alta-renda', label: 'Alta Renda' },
+  { value: 'varejo', label: 'Varejo' },
+  { value: 'on-demand', label: 'On Demand' },
+  { value: 'b2c', label: 'B2C' },
+  { value: 'campinas', label: 'Campinas' },
+  { value: 'produtos', label: 'Produtos' },
+  { value: 'performance', label: 'Performance' },
+  { value: 'geral', label: 'Geral' },
+]
+
+const STATUS_LABELS: Record<StatusTarefa, string> = {
+  'a-fazer': 'A Fazer',
+  'em-andamento': 'Em Andamento',
+  'aguardando': 'Aguardando',
+  'concluido': 'Concluído',
+}
+
+function InlineText({
+  value,
+  onSave,
+  placeholder,
+  multiline,
+  className,
+}: {
+  value: string
+  onSave: (v: string) => void
+  placeholder?: string
+  multiline?: boolean
+  className?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
+
+  useEffect(() => { if (editing) ref.current?.focus() }, [editing])
+  useEffect(() => { setDraft(value) }, [value])
+
+  const commit = () => {
+    setEditing(false)
+    if (draft.trim() !== value) { onSave(draft.trim()); toast.success('Salvo!') }
+  }
+
+  if (editing) {
+    const props = {
+      ref,
+      value: draft,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+      onBlur: commit,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !multiline) { e.preventDefault(); commit() }
+        if (e.key === 'Escape') { setEditing(false); setDraft(value) }
+      },
+      className: cn(
+        'w-full rounded-lg border border-indigo-400 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30',
+        className
+      ),
+    }
+    return multiline
+      ? <textarea {...props} rows={3} className={cn(props.className, 'resize-none')} />
+      : <input {...props} />
+  }
+
+  return (
+    <span
+      onClick={() => setEditing(true)}
+      className={cn(
+        'cursor-text hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded px-1 -mx-1 transition-colors group inline-flex items-center gap-1',
+        !value && 'text-slate-400 dark:text-slate-500 italic',
+        className
+      )}
+      title="Clique para editar"
+    >
+      {value || placeholder || 'Clique para editar'}
+      <Pencil size={10} className="opacity-0 group-hover:opacity-40 flex-shrink-0" />
+    </span>
+  )
+}
+
+function InlineDate({
+  value,
+  onSave,
+}: {
+  value: string
+  onSave: (v: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const ref = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { if (editing) ref.current?.focus() }, [editing])
+
+  return editing ? (
+    <input
+      ref={ref}
+      type="date"
+      defaultValue={value}
+      autoFocus
+      onBlur={e => { setEditing(false); if (e.target.value !== value) { onSave(e.target.value); toast.success('Prazo atualizado!') } }}
+      onChange={e => { if (e.target.value) { onSave(e.target.value); setEditing(false); toast.success('Prazo atualizado!') } }}
+      className="rounded-lg border border-indigo-400 bg-white dark:bg-slate-800 px-2 py-0.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+    />
+  ) : (
+    <span
+      onClick={() => setEditing(true)}
+      className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded px-1 -mx-1 transition-colors group inline-flex items-center gap-1"
+      title="Clique para editar"
+    >
+      {value ? formatDate(value) : <span className="text-slate-400 italic">Sem prazo</span>}
+      <Pencil size={10} className="opacity-0 group-hover:opacity-40 flex-shrink-0" />
+    </span>
+  )
+}
+
+function InlineSelect<T extends string>({
+  value,
+  options,
+  onSave,
+  renderValue,
+}: {
+  value: T
+  options: { value: T; label: string }[]
+  onSave: (v: T) => void
+  renderValue?: (v: T) => React.ReactNode
+}) {
+  const [editing, setEditing] = useState(false)
+  const ref = useRef<HTMLSelectElement>(null)
+
+  useEffect(() => { if (editing) ref.current?.focus() }, [editing])
+
+  if (editing) {
+    return (
+      <select
+        ref={ref}
+        defaultValue={value}
+        autoFocus
+        onBlur={() => setEditing(false)}
+        onChange={e => { onSave(e.target.value as T); setEditing(false); toast.success('Salvo!') }}
+        className="rounded-lg border border-indigo-400 bg-white dark:bg-slate-800 px-2 py-0.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    )
+  }
+
+  return (
+    <span
+      onClick={() => setEditing(true)}
+      className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded px-1 -mx-1 transition-colors group inline-flex items-center gap-1"
+      title="Clique para editar"
+    >
+      {renderValue ? renderValue(value) : options.find(o => o.value === value)?.label ?? value}
+      <Pencil size={10} className="opacity-0 group-hover:opacity-40 flex-shrink-0" />
+    </span>
+  )
+}
+
 export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
-  const { updateTarefa, deleteTarefa, projetos } = useStore()
-  const [editOpen, setEditOpen] = useState(false)
+  const { updateTarefa, deleteTarefa, projetos, usuarios } = useStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [novoComentario, setNovoComentario] = useState('')
   const [novoCheckItem, setNovoCheckItem] = useState('')
@@ -34,15 +188,12 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
   const projeto = projetos.find(p => p.id === tarefa.projetoId)
   const overdue = isOverdue(tarefa.prazo) && tarefa.status !== 'concluido'
 
+  const save = (data: Partial<Tarefa>) => updateTarefa(tarefa.id, data)
+
   const handleDelete = () => {
     deleteTarefa(tarefa.id)
     toast.success('Tarefa excluída')
     onClose()
-  }
-
-  const handleStatusChange = (status: StatusTarefa) => {
-    updateTarefa(tarefa.id, { status })
-    toast.success('Status atualizado!')
   }
 
   const handleAddComentario = () => {
@@ -66,6 +217,10 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
     updateTarefa(tarefa.id, { checklist: newChecklist })
   }
 
+  const handleRemoveCheck = (checkId: string) => {
+    updateTarefa(tarefa.id, { checklist: tarefa.checklist.filter(c => c.id !== checkId) })
+  }
+
   const handleAddCheckItem = () => {
     if (!novoCheckItem.trim()) return
     const item = { id: `ck-${Date.now()}`, texto: novoCheckItem.trim(), concluido: false }
@@ -78,6 +233,16 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
     ? Math.round((tarefa.checklist.filter(c => c.concluido).length / tarefa.checklist.length) * 100)
     : null
 
+  const responsavelOptions = [
+    { value: '', label: 'Sem responsável' },
+    ...(usuarios?.map((u: any) => ({ value: u.nome, label: u.nome })) ?? []),
+  ]
+
+  const projetoOptions = [
+    { value: '', label: '—' },
+    ...projetos.map(p => ({ value: p.id, label: p.nome })),
+  ]
+
   return (
     <>
       <Dialog.Root open={!!tarefa} onOpenChange={open => !open && onClose()}>
@@ -88,22 +253,41 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
             <div className="flex items-start justify-between p-5 border-b border-slate-200 dark:border-slate-800">
               <div className="flex-1 pr-4">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <StatusBadge status={tarefa.status} />
-                  <PriorityBadge nivel={tarefa.nivelPrioridade} />
-                  <TimeBadge time={tarefa.time} />
+                  <InlineSelect
+                    value={tarefa.status}
+                    options={(['a-fazer', 'em-andamento', 'aguardando', 'concluido'] as StatusTarefa[]).map(s => ({ value: s, label: STATUS_LABELS[s] }))}
+                    onSave={v => save({ status: v })}
+                    renderValue={v => <StatusBadge status={v} />}
+                  />
+                  <InlineSelect
+                    value={tarefa.nivelPrioridade}
+                    options={(['critica', 'alta', 'media', 'baixa'] as NivelPrioridade[]).map(p => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
+                    onSave={v => save({ nivelPrioridade: v, prioridade: v })}
+                    renderValue={v => <PriorityBadge nivel={v} />}
+                  />
+                  <InlineSelect
+                    value={tarefa.time}
+                    options={TIMES}
+                    onSave={v => save({ time: v })}
+                    renderValue={v => <TimeBadge time={v} />}
+                  />
                   <div className="flex items-center gap-1 ml-auto">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Score:</span>
                     <ScoreBadge score={tarefa.scorePrioridade} />
                   </div>
                 </div>
-                <Dialog.Title className="font-bold text-slate-900 dark:text-white text-base leading-tight">
-                  {tarefa.titulo}
+                <Dialog.Title asChild>
+                  <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
+                    <InlineText
+                      value={tarefa.titulo}
+                      onSave={v => save({ titulo: v })}
+                      placeholder="Título da tarefa"
+                      className="font-bold text-base"
+                    />
+                  </h2>
                 </Dialog.Title>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button onClick={() => setEditOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors">
-                  <Edit2 size={16} />
-                </button>
                 <button onClick={() => setConfirmDelete(true)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-600 transition-colors">
                   <Trash2 size={16} />
                 </button>
@@ -126,25 +310,44 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
               )}
 
               {/* Descrição */}
-              {tarefa.descricao && (
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Descrição</h4>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{tarefa.descricao}</p>
-                </div>
-              )}
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Descrição</h4>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <InlineText
+                    value={tarefa.descricao}
+                    onSave={v => save({ descricao: v })}
+                    placeholder="Clique para adicionar descrição..."
+                    multiline
+                  />
+                </p>
+              </div>
 
               {/* Meta */}
               <div className="grid grid-cols-2 gap-3">
                 <MetaItem icon={Calendar} label="Prazo">
                   <span className={cn('text-sm font-medium', overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300')}>
-                    {prazoLabel(tarefa.prazo, tarefa.status)} · {formatDate(tarefa.prazo)}
+                    {tarefa.prazo && <span className="mr-1 text-xs text-slate-400">{prazoLabel(tarefa.prazo, tarefa.status)} ·</span>}
+                    <InlineDate value={tarefa.prazo} onSave={v => save({ prazo: v })} />
                   </span>
                 </MetaItem>
                 <MetaItem icon={User} label="Responsável">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{tarefa.responsavel || 'Sem responsável'}</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <InlineText
+                      value={tarefa.responsavel}
+                      onSave={v => save({ responsavel: v })}
+                      placeholder="Sem responsável"
+                    />
+                  </span>
                 </MetaItem>
                 <MetaItem icon={Folder} label="Projeto">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{projeto?.nome || '—'}</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <InlineSelect
+                      value={tarefa.projetoId ?? ''}
+                      options={projetoOptions}
+                      onSave={v => save({ projetoId: v })}
+                      renderValue={v => <span>{projetos.find(p => p.id === v)?.nome ?? '—'}</span>}
+                    />
+                  </span>
                 </MetaItem>
                 <MetaItem icon={Clock} label="Atualizado">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{formatRelative(tarefa.ultimaAtualizacao)}</span>
@@ -152,38 +355,24 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
               </div>
 
               {/* Tags */}
-              {tarefa.tags.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tarefa.tags.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Mover status */}
               <div>
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Mover para</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {(['a-fazer', 'em-andamento', 'aguardando', 'concluido'] as StatusTarefa[]).map(s => (
-                    <button
-                      key={s}
-                      disabled={tarefa.status === s}
-                      onClick={() => handleStatusChange(s)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                        tarefa.status === s
-                          ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 cursor-default ring-1 ring-indigo-300 dark:ring-indigo-700'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-700'
-                      )}
-                    >
-                      <StatusBadge status={s} size="xs" />
-                    </button>
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Tags</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {tarefa.tags.map(tag => (
+                    <span key={tag} className="group flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                      #{tag}
+                      <button
+                        onClick={() => { save({ tags: tarefa.tags.filter(t => t !== tag) }); toast.success('Tag removida') }}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-red-400 leading-none"
+                      >×</button>
+                    </span>
                   ))}
+                  <AddTagInline onAdd={tag => {
+                    if (!tarefa.tags.includes(tag)) {
+                      save({ tags: [...tarefa.tags, tag] })
+                      toast.success('Tag adicionada')
+                    }
+                  }} />
                 </div>
               </div>
 
@@ -204,17 +393,21 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
                 )}
                 <div className="space-y-2">
                   {tarefa.checklist.map(item => (
-                    <label key={item.id} className="flex items-start gap-2.5 cursor-pointer group">
+                    <div key={item.id} className="flex items-start gap-2.5 group">
                       <input
                         type="checkbox"
                         checked={item.concluido}
                         onChange={() => handleToggleCheck(item.id)}
-                        className="mt-0.5 accent-indigo-600"
+                        className="mt-0.5 accent-indigo-600 cursor-pointer"
                       />
-                      <span className={cn('text-sm', item.concluido ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300')}>
+                      <span className={cn('flex-1 text-sm', item.concluido ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300')}>
                         {item.texto}
                       </span>
-                    </label>
+                      <button
+                        onClick={() => handleRemoveCheck(item.id)}
+                        className="opacity-0 group-hover:opacity-50 hover:!opacity-100 text-red-400 text-xs leading-none mt-0.5"
+                      >×</button>
+                    </div>
                   ))}
                   {addingCheck && (
                     <div className="flex gap-2 mt-2">
@@ -222,16 +415,12 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
                         autoFocus
                         value={novoCheckItem}
                         onChange={e => setNovoCheckItem(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleAddCheckItem()}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddCheckItem(); if (e.key === 'Escape') { setAddingCheck(false); setNovoCheckItem('') } }}
                         placeholder="Item do checklist..."
                         className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                       />
-                      <button onClick={handleAddCheckItem} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs hover:bg-indigo-700">
-                        OK
-                      </button>
-                      <button onClick={() => setAddingCheck(false)} className="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs">
-                        ✕
-                      </button>
+                      <button onClick={handleAddCheckItem} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs hover:bg-indigo-700">OK</button>
+                      <button onClick={() => { setAddingCheck(false); setNovoCheckItem('') }} className="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs">✕</button>
                     </div>
                   )}
                   {tarefa.checklist.length === 0 && !addingCheck && (
@@ -293,7 +482,6 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
         </Dialog.Portal>
       </Dialog.Root>
 
-      <TaskFormModal open={editOpen} onOpenChange={setEditOpen} tarefa={tarefa} />
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -303,6 +491,43 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
         onConfirm={handleDelete}
       />
     </>
+  )
+}
+
+function AddTagInline({ onAdd }: { onAdd: (tag: string) => void }) {
+  const [adding, setAdding] = useState(false)
+  const [value, setValue] = useState('')
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (adding) ref.current?.focus() }, [adding])
+
+  const commit = () => {
+    const tag = value.trim().toLowerCase().replace(/\s+/g, '-')
+    if (tag) onAdd(tag)
+    setValue('')
+    setAdding(false)
+  }
+
+  if (adding) {
+    return (
+      <input
+        ref={ref}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setAdding(false); setValue('') } }}
+        placeholder="nova-tag"
+        className="px-2 py-0.5 rounded-md border border-indigo-400 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
+      />
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setAdding(true)}
+      className="px-2 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-600 text-xs text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center gap-1"
+    >
+      <Plus size={10} /> tag
+    </button>
   )
 }
 

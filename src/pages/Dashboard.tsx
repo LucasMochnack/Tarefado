@@ -21,10 +21,14 @@ import {
 import { cn } from '@/lib/utils'
 
 const TIME_COLORS: Record<Time, string> = {
-  b2c: '#8b5cf6',
-  campinas: '#3b82f6',
-  produtos: '#10b981',
-  geral: '#6b7280',
+  'b2c': '#8b5cf6',
+  'campinas': '#3b82f6',
+  'produtos': '#10b981',
+  'geral': '#6b7280',
+  'alta-renda': '#f59e0b',
+  'varejo': '#f97316',
+  'on-demand': '#6366f1',
+  'performance': '#f43f5e',
 }
 
 export function Dashboard() {

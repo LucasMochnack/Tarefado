@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
@@ -8,6 +8,11 @@ import { useStore } from '@/store/useStore'
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const darkMode = useStore(s => s.darkMode)
+  const processarRecorrentes = useStore(s => s.processarRecorrentes)
+
+  useEffect(() => {
+    processarRecorrentes()
+  }, [])
 
   return (
     <div className={darkMode ? 'dark' : ''}>
