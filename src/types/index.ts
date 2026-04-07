@@ -1,6 +1,6 @@
 export type StatusTarefa = 'a-fazer' | 'em-andamento' | 'aguardando' | 'concluido'
 export type NivelPrioridade = 'critica' | 'alta' | 'media' | 'baixa'
-export type Time = 'on-demand' | 'alta-renda' | 'varejo' | 'b2c' | 'campinas' | 'produtos' | 'geral'
+export type Time = 'on-demand' | 'alta-renda' | 'varejo' | 'b2c' | 'campinas' | 'produtos' | 'geral' | 'performance'
 export type QuadranteEisenhower =
   | 'importante-urgente'
   | 'importante-nao-urgente'
@@ -43,6 +43,7 @@ export interface Tarefa {
   cor?: string
   dataInicio?: string
   bloqueadaPor?: string
+  quadranteEisenhower?: QuadranteEisenhower
   scorePrioridade: number
   nivelPrioridade: NivelPrioridade
   motivoPrioridade: string

@@ -1,128 +1,172 @@
 import { useState } from 'react'
-import { Target, RefreshCw, Filter, X } from 'lucide-react'
+import { Target, RefreshCw, Filter, X, GripVertical, Zap, Clock, Trash2, Calendar } from 'lucide-react'
 import { useStore } from '@/store/useStore'
-import { Tarefa, Time, NivelPrioridade } from '@/types'
+import { Tarefa, Time, NivelPrioridade, QuadranteEisenhower } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
-import { PriorityBadge, ScoreBadge } from '@/components/shared/PriorityBadge'
+import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
-import { RESPONSAVEIS } from '@/data/mockData'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
+const TODOS_TIMES: { value: Time; label: string }[] = [
+  { value: 'alta-renda',  label: 'Alta Renda' },
+  { value: 'varejo',      label: 'Varejo' },
+  { value: 'on-demand',   label: 'On Demand' },
+  { value: 'b2c',         label: 'B2C' },
+  { value: 'campinas',    label: 'Campinas' },
+  { value: 'produtos',    label: 'Produtos' },
+  { value: 'performance', label: 'Performance' },
+]
+
+const QUADRANTES: {
+  id: QuadranteEisenhower
+  label: string
+  sub: string
+  icon: React.ElementType
+  border: string
+  bg: string
+  labelColor: string
+  urgente: boolean
+  importante: boolean
+}[] = [
+  {
+    id: 'importante-urgente',
+    label: 'FAZER AGORA',
+    sub: 'Importante + Urgente',
+    icon: Zap,
+    border: 'border-red-200 dark:border-red-900/40',
+    bg: 'bg-red-50/60 dark:bg-red-950/10',
+    labelColor: 'text-red-600 dark:text-red-400',
+    urgente: true,
+    importante: true,
+  },
+  {
+    id: 'importante-nao-urgente',
+    label: 'AGENDAR',
+    sub: 'Importante + Não Urgente',
+    icon: Calendar,
+    border: 'border-blue-200 dark:border-blue-900/40',
+    bg: 'bg-blue-50/60 dark:bg-blue-950/10',
+    labelColor: 'text-blue-600 dark:text-blue-400',
+    urgente: false,
+    importante: true,
+  },
+  {
+    id: 'nao-importante-urgente',
+    label: 'DELEGAR',
+    sub: 'Não Importante + Urgente',
+    icon: Clock,
+    border: 'border-yellow-200 dark:border-yellow-900/40',
+    bg: 'bg-yellow-50/60 dark:bg-yellow-950/10',
+    labelColor: 'text-yellow-600 dark:text-yellow-400',
+    urgente: true,
+    importante: false,
+  },
+  {
+    id: 'nao-importante-nao-urgente',
+    label: 'ELIMINAR',
+    sub: 'Não Importante + Não Urgente',
+    icon: Trash2,
+    border: 'border-slate-200 dark:border-slate-700',
+    bg: 'bg-slate-50/60 dark:bg-slate-800/20',
+    labelColor: 'text-slate-500 dark:text-slate-400',
+    urgente: false,
+    importante: false,
+  },
+]
+
 export function Prioridades() {
-  const { tarefas, projetos, recalcularPrioridades } = useStore()
+  const { tarefas, projetos, recalcularPrioridades, updateTarefa } = useStore()
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [timeFilter, setTimeFilter] = useState<Time | ''>('')
-  const [projetoFilter, setProjetoFilter] = useState('')
   const [nivelFilter, setNivelFilter] = useState<NivelPrioridade | ''>('')
-  const [somenteAtrasadas, setSomenteAtrasadas] = useState(false)
-  const [somenteParadas, setSomenteParadas] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [dragOverQuadrante, setDragOverQuadrante] = useState<QuadranteEisenhower | 'backlog' | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
-  const activeTarefas = tarefas.filter(t => t.status !== 'concluido')
+  const activeTarefas = tarefas
+    .filter(t => t.status !== 'concluido')
+    .filter(t => !timeFilter || t.time === timeFilter)
+    .filter(t => !nivelFilter || t.nivelPrioridade === nivelFilter)
 
-  const filtered = activeTarefas
-    .filter(t => {
-      if (timeFilter && t.time !== timeFilter) return false
-      if (projetoFilter && t.projetoId !== projetoFilter) return false
-      if (nivelFilter && t.nivelPrioridade !== nivelFilter) return false
-      if (somenteAtrasadas && !isOverdue(t.prazo)) return false
-      if (somenteParadas && daysSinceUpdate(t.ultimaAtualizacao) < 7) return false
-      return true
-    })
-    .sort((a, b) => b.scorePrioridade - a.scorePrioridade)
+  const backlog = activeTarefas.filter(t => !t.quadranteEisenhower)
+  const hasFilters = !!(timeFilter || nivelFilter)
 
-  const hasFilters = !!(timeFilter || projetoFilter || nivelFilter || somenteAtrasadas || somenteParadas)
-  const clearFilters = () => {
-    setTimeFilter(''); setProjetoFilter(''); setNivelFilter('')
-    setSomenteAtrasadas(false); setSomenteParadas(false)
+  const tarefasNoQuadrante = (q: QuadranteEisenhower) =>
+    activeTarefas.filter(t => t.quadranteEisenhower === q)
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragEnd = () => {
+    setDraggedId(null)
+    setDragOverQuadrante(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, destino: QuadranteEisenhower | 'backlog') => {
+    e.preventDefault()
+    if (!draggedId) return
+    if (destino === 'backlog') {
+      updateTarefa(draggedId, { quadranteEisenhower: undefined })
+      toast.success('Tarefa movida para o backlog')
+    } else {
+      updateTarefa(draggedId, { quadranteEisenhower: destino })
+      const q = QUADRANTES.find(q => q.id === destino)
+      toast.success(`Tarefa movida para "${q?.label}"`)
+    }
+    setDraggedId(null)
+    setDragOverQuadrante(null)
   }
 
   const selectClass = 'rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30'
 
-  const nivelCounts = {
-    critica: activeTarefas.filter(t => t.nivelPrioridade === 'critica').length,
-    alta: activeTarefas.filter(t => t.nivelPrioridade === 'alta').length,
-    media: activeTarefas.filter(t => t.nivelPrioridade === 'media').length,
-    baixa: activeTarefas.filter(t => t.nivelPrioridade === 'baixa').length,
-  }
-
   return (
-    <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
+    <div className="p-6 space-y-4 max-w-screen-2xl mx-auto h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Target size={22} className="text-indigo-500" />
-            Central de Prioridades
+            Matriz de Eisenhower
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão consolidada de todas as prioridades em ordem de urgência</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Priorize suas tarefas pela urgência e importância</p>
         </div>
-        <button
-          onClick={() => { recalcularPrioridades(); toast.success('Prioridades recalculadas!') }}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
-        >
-          <RefreshCw size={13} /> Recalcular
-        </button>
-      </div>
-
-      {/* Level summary */}
-      <div className="grid grid-cols-4 gap-3">
-        {(Object.entries(nivelCounts) as [NivelPrioridade, number][]).map(([nivel, count]) => (
+        <div className="flex items-center gap-2">
           <button
-            key={nivel}
-            onClick={() => setNivelFilter(n => n === nivel ? '' : nivel)}
+            onClick={() => setShowFilters(f => !f)}
             className={cn(
-              'rounded-xl border p-4 text-center transition-all',
-              nivelFilter === nivel ? 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-slate-900' : 'hover:shadow-sm',
-              nivel === 'critica' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40' :
-              nivel === 'alta' ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/40' :
-              nivel === 'media' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900/40' :
-              'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700'
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors',
+              showFilters || hasFilters
+                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400'
+                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             )}
           >
-            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{count}</div>
-            <PriorityBadge nivel={nivel} />
+            <Filter size={13} /> Filtros {hasFilters && '(ativo)'}
           </button>
-        ))}
-      </div>
-
-      {/* Filters toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={() => setShowFilters(f => !f)}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors',
-            showFilters || hasFilters
-              ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400'
-              : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          {hasFilters && (
+            <button onClick={() => { setTimeFilter(''); setNivelFilter('') }} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+              <X size={12} /> Limpar
+            </button>
           )}
-        >
-          <Filter size={13} /> Filtros {hasFilters && `(ativo)`}
-        </button>
-        {hasFilters && (
-          <button onClick={clearFilters} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-            <X size={12} /> Limpar filtros
+          <button
+            onClick={() => { recalcularPrioridades(); toast.success('Prioridades recalculadas!') }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+          >
+            <RefreshCw size={13} /> Recalcular
           </button>
-        )}
-        <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
-          {filtered.length} tarefa{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
-        </span>
+        </div>
       </div>
 
+      {/* Filtros */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0">
           <select value={timeFilter} onChange={e => setTimeFilter(e.target.value as Time | '')} className={selectClass}>
             <option value="">Todos os times</option>
-            <option value="b2c">B2C</option>
-            <option value="campinas">Campinas</option>
-            <option value="produtos">Produtos</option>
-          </select>
-          <select value={projetoFilter} onChange={e => setProjetoFilter(e.target.value)} className={selectClass}>
-            <option value="">Todos os projetos</option>
-            {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            {TODOS_TIMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <select value={nivelFilter} onChange={e => setNivelFilter(e.target.value as NivelPrioridade | '')} className={selectClass}>
             <option value="">Todos os níveis</option>
@@ -131,77 +175,237 @@ export function Prioridades() {
             <option value="media">🟡 Média</option>
             <option value="baixa">⚪ Baixa</option>
           </select>
-          <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
-            <input type="checkbox" checked={somenteAtrasadas} onChange={e => setSomenteAtrasadas(e.target.checked)} className="accent-indigo-600" />
-            Apenas atrasadas
-          </label>
-          <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
-            <input type="checkbox" checked={somenteParadas} onChange={e => setSomenteParadas(e.target.checked)} className="accent-indigo-600" />
-            Apenas paradas
-          </label>
         </div>
       )}
 
-      {/* Priority table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="grid grid-cols-[auto_auto_1fr_auto_auto_auto_auto] gap-0 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <div className="w-12 text-center">#</div>
-          <div className="w-16 text-center">Score</div>
-          <div className="pl-2">Tarefa</div>
-          <div className="w-20 text-center">Time</div>
-          <div className="w-24 text-center">Status</div>
-          <div className="w-24 text-center">Prazo</div>
-          <div className="w-24 text-center">Responsável</div>
+      {/* Colunas urgente / não urgente */}
+      <div className="flex-1 min-h-0 flex gap-4">
+        {/* Matriz 2x2 */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Header urgente */}
+          <div className="grid grid-cols-2 gap-4 mb-1">
+            <div className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-100/60 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
+              <Zap size={13} className="text-red-500" />
+              <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Urgente</span>
+            </div>
+            <div className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+              <Clock size={13} className="text-slate-400" />
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Não Urgente</span>
+            </div>
+          </div>
+
+          {/* Linhas: Importante / Não Importante */}
+          <div className="flex-1 min-h-0 grid grid-rows-2 gap-4">
+            {/* Linha 1: Importante */}
+            <div className="grid grid-cols-2 gap-4">
+              {QUADRANTES.filter(q => q.importante).map(q => (
+                <QuadranteBox
+                  key={q.id}
+                  quadrante={q}
+                  tarefas={tarefasNoQuadrante(q.id)}
+                  dragOver={dragOverQuadrante === q.id}
+                  draggedId={draggedId}
+                  onDragOver={e => { e.preventDefault(); setDragOverQuadrante(q.id) }}
+                  onDragLeave={() => setDragOverQuadrante(null)}
+                  onDrop={e => handleDrop(e, q.id)}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onCardClick={setSelectedTarefa}
+                />
+              ))}
+            </div>
+            {/* Linha 2: Não Importante */}
+            <div className="grid grid-cols-2 gap-4">
+              {QUADRANTES.filter(q => !q.importante).map(q => (
+                <QuadranteBox
+                  key={q.id}
+                  quadrante={q}
+                  tarefas={tarefasNoQuadrante(q.id)}
+                  dragOver={dragOverQuadrante === q.id}
+                  draggedId={draggedId}
+                  onDragOver={e => { e.preventDefault(); setDragOverQuadrante(q.id) }}
+                  onDragLeave={() => setDragOverQuadrante(null)}
+                  onDrop={e => handleDrop(e, q.id)}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onCardClick={setSelectedTarefa}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
-        {filtered.length === 0 && (
-          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
-            Nenhuma prioridade encontrada com os filtros selecionados
-          </div>
-        )}
+        {/* Indicador importante */}
+        <div className="flex flex-col items-center justify-center w-6 flex-shrink-0 gap-1 select-none">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Importante</span>
+          <div className="flex-1 w-px bg-gradient-to-b from-indigo-300 via-slate-300 to-slate-200 dark:from-indigo-700 dark:via-slate-600 dark:to-slate-700 rounded-full" />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Não Importante</span>
+        </div>
 
-        {filtered.map((t, i) => {
-          const projeto = projetos.find(p => p.id === t.projetoId)
-          const overdue = isOverdue(t.prazo) && t.status !== 'concluido'
-          return (
-            <div
-              key={t.id}
-              onClick={() => setSelectedTarefa(t)}
-              className={cn(
-                'grid grid-cols-[auto_auto_1fr_auto_auto_auto_auto] gap-0 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-colors',
-                'hover:bg-slate-50 dark:hover:bg-slate-800/60',
-                overdue && 'bg-red-50/30 dark:bg-red-950/10'
-              )}
-            >
-              <div className="w-12 flex items-center justify-center text-xs text-slate-400 font-mono">{i + 1}</div>
-              <div className="w-16 flex items-center justify-center">
-                <ScoreBadge score={t.scorePrioridade} />
-              </div>
-              <div className="pl-2 flex flex-col justify-center min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{t.titulo}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <PriorityBadge nivel={t.nivelPrioridade} size="xs" showIcon={false} />
-                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{t.motivoPrioridade} · {projeto?.nome}</p>
-                </div>
-              </div>
-              <div className="w-20 flex items-center justify-center">
-                <TimeBadge time={t.time} />
-              </div>
-              <div className="w-24 flex items-center justify-center">
-                <StatusBadge status={t.status} size="xs" />
-              </div>
-              <div className={cn('w-24 flex items-center justify-center text-xs font-medium', overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
-                {prazoLabel(t.prazo, t.status)}
-              </div>
-              <div className="w-24 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
-                {t.responsavel ? t.responsavel.split(' ')[0] : <span className="text-red-500">Sem resp.</span>}
-              </div>
-            </div>
-          )
-        })}
+        {/* Backlog de tarefas */}
+        <div
+          className={cn(
+            'w-72 flex-shrink-0 bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed transition-colors flex flex-col',
+            dragOverQuadrante === 'backlog'
+              ? 'border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20'
+              : 'border-slate-200 dark:border-slate-700'
+          )}
+          onDragOver={e => { e.preventDefault(); setDragOverQuadrante('backlog') }}
+          onDragLeave={() => setDragOverQuadrante(null)}
+          onDrop={e => handleDrop(e, 'backlog')}
+        >
+          <div className="px-4 pt-4 pb-2 flex-shrink-0">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              Backlog
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">Arraste para um quadrante</p>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5 min-h-0">
+            {backlog.length === 0 && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8 italic">
+                {activeTarefas.length === 0 ? 'Nenhuma tarefa' : 'Todas classificadas!'}
+              </p>
+            )}
+            {backlog.map(t => (
+              <BacklogCard
+                key={t.id}
+                tarefa={t}
+                dragging={draggedId === t.id}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onClick={() => setSelectedTarefa(t)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       <TaskDetailsDrawer tarefa={selectedTarefa} onClose={() => setSelectedTarefa(null)} />
+    </div>
+  )
+}
+
+function QuadranteBox({
+  quadrante, tarefas, dragOver, draggedId,
+  onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onCardClick
+}: {
+  quadrante: typeof QUADRANTES[0]
+  tarefas: Tarefa[]
+  dragOver: boolean
+  draggedId: string | null
+  onDragOver: (e: React.DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (e: React.DragEvent) => void
+  onDragStart: (e: React.DragEvent, id: string) => void
+  onDragEnd: () => void
+  onCardClick: (t: Tarefa) => void
+}) {
+  const Icon = quadrante.icon
+  return (
+    <div
+      className={cn(
+        'rounded-xl border-2 p-3 flex flex-col min-h-0 transition-all',
+        quadrante.border, quadrante.bg,
+        dragOver && 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-slate-900 scale-[1.01]'
+      )}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+        <Icon size={13} className={quadrante.labelColor} />
+        <span className={cn('text-xs font-bold uppercase tracking-wide', quadrante.labelColor)}>{quadrante.label}</span>
+        <span className="ml-auto text-[10px] text-slate-400 font-medium">{tarefas.length} tarefa{tarefas.length !== 1 ? 's' : ''}</span>
+      </div>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-2 flex-shrink-0">{quadrante.sub}</p>
+      <div className="flex-1 overflow-y-auto space-y-1.5 min-h-[60px]">
+        {tarefas.length === 0 && (
+          <p className="text-[11px] text-slate-300 dark:text-slate-600 italic text-center pt-4">Nenhum projeto neste quadrante</p>
+        )}
+        {tarefas.map(t => (
+          <QuadranteCard
+            key={t.id}
+            tarefa={t}
+            dragging={draggedId === t.id}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onClick={() => onCardClick(t)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function QuadranteCard({ tarefa: t, dragging, onDragStart, onDragEnd, onClick }: {
+  tarefa: Tarefa
+  dragging: boolean
+  onDragStart: (e: React.DragEvent, id: string) => void
+  onDragEnd: () => void
+  onClick: () => void
+}) {
+  const overdue = isOverdue(t.prazo) && t.status !== 'concluido'
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, t.id)}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-2 px-2.5 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all select-none',
+        dragging && 'opacity-40 scale-95'
+      )}
+    >
+      <GripVertical size={12} className="text-slate-300 dark:text-slate-600 flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{t.titulo}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <PriorityBadge nivel={t.nivelPrioridade} size="xs" showIcon={false} />
+          <span className={cn('text-[10px]', overdue ? 'text-red-400' : 'text-slate-400')}>
+            {prazoLabel(t.prazo, t.status)}
+          </span>
+        </div>
+      </div>
+      <TimeBadge time={t.time} />
+    </div>
+  )
+}
+
+function BacklogCard({ tarefa: t, dragging, onDragStart, onDragEnd, onClick }: {
+  tarefa: Tarefa
+  dragging: boolean
+  onDragStart: (e: React.DragEvent, id: string) => void
+  onDragEnd: () => void
+  onClick: () => void
+}) {
+  const overdue = isOverdue(t.prazo) && t.status !== 'concluido'
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, t.id)}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      className={cn(
+        'flex items-start gap-2 px-2.5 py-2 rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-sm transition-all select-none group',
+        'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700',
+        overdue && 'border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-950/10',
+        dragging && 'opacity-40 scale-95'
+      )}
+    >
+      <GripVertical size={12} className="text-slate-300 dark:text-slate-600 flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">{t.titulo}</p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <PriorityBadge nivel={t.nivelPrioridade} size="xs" showIcon={false} />
+          <StatusBadge status={t.status} size="xs" />
+          <span className={cn('text-[10px]', overdue ? 'text-red-400' : 'text-slate-400')}>
+            {prazoLabel(t.prazo, t.status)}
+          </span>
+        </div>
+        <div className="mt-1">
+          <TimeBadge time={t.time} />
+        </div>
+      </div>
     </div>
   )
 }

@@ -21,6 +21,7 @@ const TIME_CONFIG: Record<string, {
   'alta-renda': { label: 'Alta Renda', color: '#009974', bg: 'from-emerald-600 to-teal-700', desc: 'Atendimento e relacionamento com clientes de alta renda' },
   varejo: { label: 'Varejo', color: '#3b82f6', bg: 'from-blue-600 to-sky-700', desc: 'Operações, campanhas e atendimento ao segmento de varejo' },
   'on-demand': { label: 'On Demand', color: '#f59e0b', bg: 'from-amber-500 to-orange-600', desc: 'Demandas avulsas e tarefas pontuais' },
+  performance: { label: 'Performance', color: '#f43f5e', bg: 'from-rose-500 to-pink-600', desc: 'Métricas, resultados e acompanhamento de performance' },
   b2c: { label: 'B2C', color: '#8b5cf6', bg: 'from-violet-600 to-indigo-700', desc: 'Relacionamento com clientes e atividades de conversão' },
   campinas: { label: 'Campinas', color: '#3b82f6', bg: 'from-blue-600 to-sky-700', desc: 'Operação local e estratégia da unidade' },
   produtos: { label: 'Produtos', color: '#10b981', bg: 'from-emerald-600 to-teal-700', desc: 'Campanhas, materiais e lançamentos' },

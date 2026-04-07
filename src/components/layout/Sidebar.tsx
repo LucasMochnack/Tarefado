@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, FolderKanban, Users, Target, ListTodo,
-  Settings, ChevronRight, Zap, ChevronLeft, TrendingUp, ShoppingCart, GanttChart
+  Settings, ChevronRight, Zap, ChevronLeft, TrendingUp, ShoppingCart, GanttChart, BarChart2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -15,6 +15,7 @@ const navItems = [
       { to: '/times/alta-renda', icon: TrendingUp, label: 'Alta Renda' },
       { to: '/times/varejo', icon: ShoppingCart, label: 'Varejo' },
       { to: '/times/on-demand', icon: Zap, label: 'On Demand' },
+      { to: '/times/performance', icon: BarChart2, label: 'Performance' },
     ]
   },
   { to: '/planejamento', icon: GanttChart, label: 'Planejamento' },
