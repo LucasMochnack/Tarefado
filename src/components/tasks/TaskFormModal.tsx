@@ -35,10 +35,12 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
   const { addTarefa, updateTarefa, projetos, usuarios, usuarioEmail } = useStore()
   const isEdit = !!tarefa
 
-  // Determina o time padrão pelo cargo do usuário logado
+  // Determina o time padrão pelo cargo do usuário logado (admin nunca herda cargo)
   const usuarioLogado = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())
-  const timeDoUsuario = usuarioLogado?.cargo ? (CARGO_TIME_MAP[usuarioLogado.cargo] as Time) : undefined
-  const timeDefault = defaultTime ?? timeDoUsuario ?? 'b2c'
+  const timeDoUsuario = (!usuarioLogado?.admin && usuarioLogado?.cargo)
+    ? (CARGO_TIME_MAP[usuarioLogado.cargo] as Time | undefined)
+    : undefined
+  const timeDefault = defaultTime ?? timeDoUsuario ?? 'geral'
 
   const [form, setForm] = useState({
     titulo: '',
