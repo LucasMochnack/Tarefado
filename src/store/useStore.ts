@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { arrayMove } from '@dnd-kit/sortable'
 import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana } from '@/types'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { calcularScore, calcularProgressoProjeto } from '@/utils/priority'
@@ -45,6 +46,7 @@ interface AppStore {
   updateTarefa: (id: string, data: Partial<Tarefa>) => void
   deleteTarefa: (id: string) => void
   moveTarefa: (id: string, novoStatus: StatusTarefa) => void
+  reorderTarefas: (activeId: string, overId: string) => void
   recalcularPrioridades: () => void
 
   addTarefaRecorrente: (dados: Omit<TarefaRecorrente, 'id' | 'criadoEm' | 'ultimaCriacao'>) => void
@@ -166,6 +168,15 @@ export const useStore = create<AppStore>()(
 
       moveTarefa: (id, novoStatus) => {
         get().updateTarefa(id, { status: novoStatus })
+      },
+
+      reorderTarefas: (activeId, overId) => {
+        set(state => {
+          const oldIndex = state.tarefas.findIndex(t => t.id === activeId)
+          const newIndex = state.tarefas.findIndex(t => t.id === overId)
+          if (oldIndex === -1 || newIndex === -1) return state
+          return { tarefas: arrayMove(state.tarefas, oldIndex, newIndex) }
+        })
       },
 
       addTarefaRecorrente: (dados) => {

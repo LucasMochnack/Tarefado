@@ -3,7 +3,6 @@ import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
   DragOverlay, closestCorners, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useStore } from '@/store/useStore'
 import { Tarefa, StatusTarefa, FiltrosTarefa } from '@/types'
 import { usePermissoes } from '@/hooks/usePermissoes'
@@ -25,7 +24,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ filtros }: KanbanBoardProps) {
-  const { tarefas: todasTarefas, moveTarefa } = useStore()
+  const { tarefas: todasTarefas, moveTarefa, reorderTarefas, updateTarefa } = useStore()
   const timesPermitidos = usePermissoes()
   const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -57,6 +56,33 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
     setActiveId(e.active.id as string)
   }
 
+  // DragOver: move a tarefa para a coluna destino enquanto ainda arrasta
+  // (dá feedback visual imediato ao passar por outra coluna)
+  const handleDragOver = (e: DragOverEvent) => {
+    const { active, over } = e
+    if (!over) return
+
+    const tarefaId = active.id as string
+    const overId = over.id as string
+    if (tarefaId === overId) return
+
+    const sourceTarefa = tarefas.find(t => t.id === tarefaId)
+    if (!sourceTarefa) return
+
+    // Passou por cima de uma coluna diferente → muda status imediatamente
+    const coluna = COLUNAS.find(c => c.id === overId)
+    if (coluna && sourceTarefa.status !== coluna.id) {
+      updateTarefa(tarefaId, { status: coluna.id })
+      return
+    }
+
+    // Passou por cima de um card de outra coluna → muda status
+    const targetTarefa = tarefas.find(t => t.id === overId)
+    if (targetTarefa && sourceTarefa.status !== targetTarefa.status) {
+      updateTarefa(tarefaId, { status: targetTarefa.status })
+    }
+  }
+
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
     setActiveId(null)
@@ -64,26 +90,31 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
 
     const tarefaId = active.id as string
     const overId = over.id as string
+    if (tarefaId === overId) return
 
-    // Check if dropped over a column
+    const sourceTarefa = tarefas.find(t => t.id === tarefaId)
+    if (!sourceTarefa) return
+
+    // Soltou em uma coluna
     const coluna = COLUNAS.find(c => c.id === overId)
     if (coluna) {
-      const tarefa = tarefas.find(t => t.id === tarefaId)
-      if (tarefa && tarefa.status !== coluna.id) {
+      if (sourceTarefa.status !== coluna.id) {
         moveTarefa(tarefaId, coluna.id)
         toast.success(`Movida para "${coluna.label}"`)
       }
       return
     }
 
-    // Dropped over another card — find its column
+    // Soltou em cima de outro card
     const targetTarefa = tarefas.find(t => t.id === overId)
-    if (targetTarefa) {
-      const sourceTarefa = tarefas.find(t => t.id === tarefaId)
-      if (sourceTarefa && sourceTarefa.status !== targetTarefa.status) {
-        moveTarefa(tarefaId, targetTarefa.status)
-        toast.success(`Movida para "${COLUNAS.find(c => c.id === targetTarefa.status)?.label}"`)
-      }
+    if (!targetTarefa) return
+
+    if (sourceTarefa.status === targetTarefa.status) {
+      // Mesma coluna → reordenar
+      reorderTarefas(tarefaId, overId)
+    } else {
+      // Coluna diferente → mover (já foi movido no dragOver, confirma com toast)
+      toast.success(`Movida para "${COLUNAS.find(c => c.id === targetTarefa.status)?.label}"`)
     }
   }
 
@@ -93,6 +124,7 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-4 h-full min-h-0">
