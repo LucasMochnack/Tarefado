@@ -6,6 +6,7 @@ import {
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useStore } from '@/store/useStore'
 import { Tarefa, StatusTarefa, FiltrosTarefa } from '@/types'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
@@ -24,7 +25,9 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ filtros }: KanbanBoardProps) {
-  const { tarefas, moveTarefa } = useStore()
+  const { tarefas: todasTarefas, moveTarefa } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

@@ -19,6 +19,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts'
 import { cn } from '@/lib/utils'
+import { usePermissoes } from '@/hooks/usePermissoes'
 
 const TIME_COLORS: Record<Time, string> = {
   'b2c': '#8b5cf6',
@@ -32,7 +33,9 @@ const TIME_COLORS: Record<Time, string> = {
 }
 
 export function Dashboard() {
-  const { tarefas, projetos, usuarios, addUsuario, deleteUsuario, usuarioEmail } = useStore()
+  const { tarefas: todasTarefas, projetos, usuarios, addUsuario, deleteUsuario, usuarioEmail } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const navigate = useNavigate()
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

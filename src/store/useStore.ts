@@ -12,6 +12,7 @@ export interface Usuario {
   senha: string
   admin: boolean
   cor?: string
+  times?: string[]  // times que o usuário pode ver; vazio/undefined = vê tudo
 }
 
 const USUARIO_PADRAO: Usuario = {

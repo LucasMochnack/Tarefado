@@ -4,6 +4,7 @@ import { useStore } from '@/store/useStore'
 import { Time, NivelPrioridade, Tarefa } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { cn } from '@/lib/utils'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import { parseISO, format, addDays, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
@@ -68,7 +69,9 @@ const EMPTY_ROW = {
 
 // ── Component ───────────────────────────────────────────────────────────────
 export function Planejamento() {
-  const { tarefas, addTarefa, updateTarefa, projetos } = useStore()
+  const { tarefas: todasTarefas, addTarefa, updateTarefa, projetos } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [selectedTimes, setSelectedTimes]   = useState<Time[]>(['alta-renda', 'varejo', 'on-demand'])
   const [selectedPrior, setSelectedPrior]   = useState<NivelPrioridade[]>([])

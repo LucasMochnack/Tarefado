@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
 import { cn } from '@/lib/utils'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import toast from 'react-hot-toast'
 
 const TODOS_TIMES: { value: Time; label: string }[] = [
@@ -79,7 +80,9 @@ const QUADRANTES: {
 ]
 
 export function Prioridades() {
-  const { tarefas, projetos, recalcularPrioridades, updateTarefa } = useStore()
+  const { tarefas: todasTarefas, projetos, recalcularPrioridades, updateTarefa } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState<Time | ''>('')

@@ -13,6 +13,7 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { isOverdue, isDueToday, isDueTomorrow, daysSinceUpdate, prazoLabel, daysUntilDue } from '@/utils/dates'
 import { RESPONSAVEIS } from '@/data/mockData'
 import { cn } from '@/lib/utils'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import toast from 'react-hot-toast'
 
 const TIME_CONFIG: Record<string, {
@@ -32,7 +33,9 @@ type ViewMode = 'lista' | 'kanban' | 'prioridades' | 'agenda'
 export function TimeDetalhe() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { tarefas, projetos, recalcularPrioridades } = useStore()
+  const { tarefas: todasTarefas, projetos, recalcularPrioridades } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [taskOpen, setTaskOpen] = useState(false)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [view, setView] = useState<ViewMode>('agenda')

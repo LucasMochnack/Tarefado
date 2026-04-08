@@ -1,10 +1,10 @@
-import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, RepeatIcon, Users, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { RecorrenteFormModal } from '@/components/tasks/RecorrenteFormModal'
 import { useState } from 'react'
-import { TarefaRecorrente } from '@/types'
+import { TarefaRecorrente, Time } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +12,17 @@ const CORES_USUARIO = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
   '#f97316', '#f59e0b', '#10b981', '#06b6d4',
   '#3b82f6', '#64748b',
+]
+
+const TODOS_TIMES: { value: Time; label: string }[] = [
+  { value: 'alta-renda', label: 'Alta Renda' },
+  { value: 'varejo', label: 'Varejo' },
+  { value: 'on-demand', label: 'On Demand' },
+  { value: 'b2c', label: 'B2C' },
+  { value: 'campinas', label: 'Campinas' },
+  { value: 'produtos', label: 'Produtos' },
+  { value: 'performance', label: 'Performance ★' },
+  { value: 'geral', label: 'Geral' },
 ]
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -90,36 +101,88 @@ export function Configuracoes() {
 
       {/* Usuários e Cores */}
       <Section title="Usuários">
-        <div className="space-y-3">
-          {usuarios.map(u => (
-            <div key={u.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                style={{ backgroundColor: u.cor ?? '#6366f1' }}
-              >
-                {u.nome.charAt(0).toUpperCase()}
+        <div className="space-y-4">
+          {usuarios.map(u => {
+            const timesUsuario: string[] = u.times ?? []
+            const toggleTime = (time: Time) => {
+              const novos = timesUsuario.includes(time)
+                ? timesUsuario.filter(t => t !== time)
+                : [...timesUsuario, time]
+              updateUsuario(u.id, { times: novos })
+              toast.success('Times atualizados!')
+            }
+            const veeTudo = u.admin || timesUsuario.includes('performance') || timesUsuario.length === 0
+
+            return (
+            <div key={u.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-3">
+              {/* Linha superior: avatar + nome + cores */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                  style={{ backgroundColor: u.cor ?? '#6366f1' }}
+                >
+                  {u.nome.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.nome}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {CORES_USUARIO.map(cor => (
+                    <button
+                      key={cor}
+                      onClick={() => { updateUsuario(u.id, { cor }); toast.success('Cor atualizada!') }}
+                      className={cn(
+                        'w-4 h-4 rounded-full transition-transform hover:scale-110',
+                        u.cor === cor && 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-600'
+                      )}
+                      style={{ backgroundColor: cor }}
+                      title={cor}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.nome}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <p className="text-xs text-slate-400 mr-1">Cor:</p>
-                {CORES_USUARIO.map(cor => (
-                  <button
-                    key={cor}
-                    onClick={() => { updateUsuario(u.id, { cor }); toast.success('Cor atualizada!') }}
-                    className={cn(
-                      'w-5 h-5 rounded-full transition-transform hover:scale-110',
-                      u.cor === cor && 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-600'
-                    )}
-                    style={{ backgroundColor: cor }}
-                    title={cor}
-                  />
-                ))}
+
+              {/* Times de acesso */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Times com acesso
+                  </p>
+                  {veeTudo && (
+                    <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">
+                      {u.admin ? 'Admin — vê tudo' : 'Vê todos os times'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TODOS_TIMES.map(t => {
+                    const ativo = timesUsuario.includes(t.value)
+                    return (
+                      <button
+                        key={t.value}
+                        onClick={() => !u.admin && toggleTime(t.value)}
+                        disabled={u.admin}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors',
+                          ativo
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600',
+                          u.admin && 'opacity-40 cursor-not-allowed'
+                        )}
+                      >
+                        {t.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {!u.admin && timesUsuario.length === 0 && (
+                  <p className="text-[11px] text-slate-400 mt-1.5 italic">Nenhum time selecionado → acesso a todos</p>
+                )}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </Section>
 

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { isOverdue, daysSinceUpdate, prazoLabel, formatDate } from '@/utils/dates'
 import { RESPONSAVEIS } from '@/data/mockData'
 import { cn } from '@/lib/utils'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import toast from 'react-hot-toast'
 import { Trash2, Edit2 } from 'lucide-react'
 
@@ -20,7 +21,9 @@ type ViewMode = 'lista' | 'cards' | 'tabela'
 
 export function Tarefas() {
   const [searchParams] = useSearchParams()
-  const { tarefas, projetos, deleteTarefa } = useStore()
+  const { tarefas: todasTarefas, projetos, deleteTarefa } = useStore()
+  const timesPermitidos = usePermissoes()
+  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [taskOpen, setTaskOpen] = useState(false)
   const [editTarefa, setEditTarefa] = useState<Tarefa | null>(null)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
