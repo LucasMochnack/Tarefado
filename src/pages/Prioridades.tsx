@@ -67,7 +67,7 @@ const QUADRANTES: {
   },
   {
     id: 'nao-importante-nao-urgente',
-    label: 'ELIMINAR / IDEIA DE LONGO PRAZO',
+    label: 'IDEIA DE LONGO PRAZO',
     sub: 'Não Importante + Não Urgente',
     icon: Trash2,
     border: 'border-slate-200 dark:border-slate-700',
