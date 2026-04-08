@@ -1,4 +1,4 @@
-import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, ToggleLeft, ToggleRight, Camera } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -117,12 +117,36 @@ export function Configuracoes() {
             <div key={u.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-3">
               {/* Linha superior: avatar + nome + cores */}
               <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                  style={{ backgroundColor: u.cor ?? '#6366f1' }}
-                >
-                  {u.nome.charAt(0).toUpperCase()}
-                </div>
+                {/* Avatar com upload */}
+                <label className="relative cursor-pointer group flex-shrink-0">
+                  <div
+                    className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-white text-sm font-bold"
+                    style={{ backgroundColor: u.foto ? undefined : (u.cor ?? '#6366f1') }}
+                  >
+                    {u.foto
+                      ? <img src={u.foto} alt={u.nome} className="w-full h-full object-cover" />
+                      : u.nome.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={14} className="text-white" />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = ev => {
+                        updateUsuario(u.id, { foto: ev.target?.result as string })
+                        toast.success('Foto atualizada!')
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                </label>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.nome}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>

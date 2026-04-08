@@ -12,6 +12,7 @@ export interface Usuario {
   senha: string
   admin: boolean
   cor?: string
+  foto?: string     // base64 da foto de perfil
   times?: string[]  // times que o usuário pode ver; vazio/undefined = vê tudo
 }
 

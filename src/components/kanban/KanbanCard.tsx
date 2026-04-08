@@ -5,8 +5,9 @@ import { useStore } from '@/store/useStore'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, prazoLabel } from '@/utils/dates'
-import { Calendar, User, MessageSquare, CheckSquare, AlertCircle } from 'lucide-react'
+import { Calendar, MessageSquare, CheckSquare, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { UserAvatar } from '@/components/shared/UserAvatar'
 
 interface KanbanCardProps {
   tarefa: Tarefa
@@ -84,16 +85,7 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
         <div className="flex items-center gap-2.5">
           <TimeBadge time={tarefa.time} />
           {tarefa.responsavel && (
-            <div className="flex items-center gap-1">
-              <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                  {tarefa.responsavel.charAt(0)}
-                </span>
-              </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 hidden xl:block">
-                {tarefa.responsavel.split(' ')[0]}
-              </span>
-            </div>
+            <UserAvatar nome={tarefa.responsavel} size="xs" showName />
           )}
         </div>
         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">

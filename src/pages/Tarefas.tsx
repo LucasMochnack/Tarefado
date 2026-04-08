@@ -9,6 +9,7 @@ import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge, ScoreBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
+import { UserAvatar } from '@/components/shared/UserAvatar'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { isOverdue, daysSinceUpdate, prazoLabel, formatDate } from '@/utils/dates'
 import { RESPONSAVEIS } from '@/data/mockData'
@@ -204,7 +205,10 @@ export function Tarefas() {
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <TimeBadge time={t.time} />
-                  <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:block">{t.responsavel || '—'}</span>
+                  {t.responsavel
+                    ? <UserAvatar nome={t.responsavel} size="xs" showName />
+                    : <span className="text-xs text-slate-400">—</span>
+                  }
                   <span className={cn('text-xs font-medium', overdue ? 'text-red-500' : 'text-slate-400 dark:text-slate-500')}>
                     {prazoLabel(t.prazo, t.status)}
                   </span>
@@ -282,7 +286,9 @@ export function Tarefas() {
                     <td className="px-4 py-3"><StatusBadge status={t.status} size="xs" /></td>
                     <td className="px-4 py-3"><PriorityBadge nivel={t.nivelPrioridade} size="xs" /></td>
                     <td className="px-4 py-3"><TimeBadge time={t.time} /></td>
-                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{t.responsavel || '—'}</td>
+                    <td className="px-4 py-3">
+                      {t.responsavel ? <UserAvatar nome={t.responsavel} size="sm" showName /> : <span className="text-slate-400">—</span>}
+                    </td>
                     <td className={cn('px-4 py-3 font-medium', overdue ? 'text-red-500' : 'text-slate-500 dark:text-slate-400')}>
                       {formatDate(t.prazo)}
                     </td>

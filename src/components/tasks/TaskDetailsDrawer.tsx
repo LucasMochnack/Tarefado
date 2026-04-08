@@ -14,6 +14,7 @@ import { formatDate, formatRelative, isOverdue, prazoLabel } from '@/utils/dates
 import { todayISO } from '@/utils/dates'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { UserAvatar } from '@/components/shared/UserAvatar'
 
 interface TaskDetailsDrawerProps {
   tarefa: Tarefa | null
@@ -331,13 +332,16 @@ export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
                   </span>
                 </MetaItem>
                 <MetaItem icon={User} label="Responsável">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    <InlineText
-                      value={tarefa.responsavel}
-                      onSave={v => save({ responsavel: v })}
-                      placeholder="Sem responsável"
-                    />
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {tarefa.responsavel && <UserAvatar nome={tarefa.responsavel} size="sm" />}
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <InlineText
+                        value={tarefa.responsavel}
+                        onSave={v => save({ responsavel: v })}
+                        placeholder="Sem responsável"
+                      />
+                    </span>
+                  </div>
                 </MetaItem>
                 <MetaItem icon={Folder} label="Projeto">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
