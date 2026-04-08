@@ -33,7 +33,7 @@ export function Configuracoes() {
     darkMode, toggleDarkMode,
     tarefas, projetos,
     recalcularPrioridades,
-    usuarios, updateUsuario,
+    usuarios, updateUsuario, addUsuario,
     tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente,
   } = useStore()
 
@@ -42,6 +42,8 @@ export function Configuracoes() {
   const [editandoRecorrente, setEditandoRecorrente] = useState<TarefaRecorrente | undefined>()
   const [editandoUsuarioId, setEditandoUsuarioId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ nome: '', email: '', senha: '', cargo: '' })
+  const [novoUsuarioOpen, setNovoUsuarioOpen] = useState(false)
+  const [novoForm, setNovoForm] = useState({ nome: '', email: '', senha: '', cargo: '', admin: false })
 
   const iCls = 'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30'
 
@@ -105,8 +107,65 @@ export function Configuracoes() {
       </Section>
 
       {/* Usuários e Cores */}
-      <Section title="Usuários">
+      <Section title="Usuários" action={
+        <button
+          onClick={() => { setNovoUsuarioOpen(o => !o); setEditandoUsuarioId(null) }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
+        >
+          <Plus size={13} /> Novo usuário
+        </button>
+      }>
         <div className="space-y-4">
+
+          {/* Formulário novo usuário */}
+          {novoUsuarioOpen && (
+            <div className="border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-4 space-y-3 bg-indigo-50/50 dark:bg-indigo-950/10">
+              <p className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Novo usuário</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Nome *</label>
+                  <input value={novoForm.nome} onChange={e => setNovoForm(f => ({ ...f, nome: e.target.value }))} className={iCls} placeholder="Nome completo" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">E-mail *</label>
+                  <input type="email" value={novoForm.email} onChange={e => setNovoForm(f => ({ ...f, email: e.target.value }))} className={iCls} placeholder="email@exemplo.com" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Senha *</label>
+                  <input type="password" value={novoForm.senha} onChange={e => setNovoForm(f => ({ ...f, senha: e.target.value }))} className={iCls} placeholder="Senha de acesso" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Cargo / Time principal</label>
+                  <select value={novoForm.cargo} onChange={e => setNovoForm(f => ({ ...f, cargo: e.target.value }))} className={iCls}>
+                    <option value="">— Sem cargo —</option>
+                    <option value="Administrador">Administrador</option>
+                    {TODOS_TIMES.map(t => <option key={t.value} value={t.label.replace(' ★', '')}>{t.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={novoForm.admin} onChange={e => setNovoForm(f => ({ ...f, admin: e.target.checked }))} className="accent-indigo-600" />
+                <span className="text-xs text-slate-600 dark:text-slate-300">Administrador (acesso total)</span>
+              </label>
+              <div className="flex justify-end gap-2 pt-1">
+                <button onClick={() => { setNovoUsuarioOpen(false); setNovoForm({ nome: '', email: '', senha: '', cargo: '', admin: false }) }} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+                <button
+                  onClick={() => {
+                    if (!novoForm.nome.trim()) { toast.error('Nome obrigatório'); return }
+                    if (!novoForm.email.trim()) { toast.error('E-mail obrigatório'); return }
+                    if (!novoForm.senha.trim()) { toast.error('Senha obrigatória'); return }
+                    addUsuario({ nome: novoForm.nome.trim(), email: novoForm.email.trim(), senha: novoForm.senha, cargo: novoForm.cargo || undefined, admin: novoForm.admin, cor: '#6366f1' })
+                    toast.success('Usuário criado!')
+                    setNovoUsuarioOpen(false)
+                    setNovoForm({ nome: '', email: '', senha: '', cargo: '', admin: false })
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  <Save size={12} /> Criar usuário
+                </button>
+              </div>
+            </div>
+          )}
           {usuarios.map(u => {
             const timesUsuario: string[] = u.times ?? []
             const toggleTime = (time: Time) => {
@@ -389,10 +448,13 @@ export function Configuracoes() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-      <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide mb-4">{title}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{title}</h2>
+        {action}
+      </div>
       {children}
     </div>
   )
