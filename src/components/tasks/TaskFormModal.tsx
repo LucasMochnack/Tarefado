@@ -35,9 +35,9 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
   const { addTarefa, updateTarefa, projetos, usuarios, usuarioEmail } = useStore()
   const isEdit = !!tarefa
 
-  // Determina o time padrão pelo cargo do usuário logado (admin nunca herda cargo)
+  // Determina o time padrão pelo cargo do usuário logado
   const usuarioLogado = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())
-  const timeDoUsuario = (!usuarioLogado?.admin && usuarioLogado?.cargo)
+  const timeDoUsuario = usuarioLogado?.cargo
     ? (CARGO_TIME_MAP[usuarioLogado.cargo] as Time | undefined)
     : undefined
   const timeDefault = defaultTime ?? timeDoUsuario ?? 'geral'
