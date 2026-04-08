@@ -7,6 +7,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
+import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
 import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
@@ -411,7 +412,10 @@ function QuadranteCard({ tarefa: t, dragging, onDragStart, onDragEnd, onClick }:
           </span>
         </div>
       </div>
-      <TimeBadge time={t.time} />
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <TimeBadge time={t.time} />
+        <UserAvatarPicker tarefaId={t.id} responsavel={t.responsavel} size="sm" />
+      </div>
     </div>
   )
 }
@@ -447,8 +451,9 @@ function BacklogCard({ tarefa: t, dragging, onDragStart, onDragEnd, onClick }: {
             {prazoLabel(t.prazo, t.status)}
           </span>
         </div>
-        <div className="mt-1">
+        <div className="flex items-center justify-between mt-1.5">
           <TimeBadge time={t.time} />
+          <UserAvatarPicker tarefaId={t.id} responsavel={t.responsavel} size="sm" />
         </div>
       </div>
     </div>

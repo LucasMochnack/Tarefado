@@ -7,7 +7,7 @@ import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, prazoLabel } from '@/utils/dates'
 import { Calendar, MessageSquare, CheckSquare, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { UserAvatar } from '@/components/shared/UserAvatar'
+import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
 
 interface KanbanCardProps {
   tarefa: Tarefa
@@ -45,15 +45,18 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
         (isDragging || isSortableDragging) && 'opacity-50 shadow-xl rotate-1 scale-105'
       )}
     >
-      {/* Priority + overdue indicator */}
+      {/* Priority + avatar */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <PriorityBadge nivel={tarefa.nivelPrioridade} size="xs" />
-        {overdue && (
-          <span className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-medium">
-            <AlertCircle size={11} />
-            {prazoLabel(tarefa.prazo, tarefa.status)}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {overdue && (
+            <span className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-medium">
+              <AlertCircle size={11} />
+              {prazoLabel(tarefa.prazo, tarefa.status)}
+            </span>
+          )}
+          <UserAvatarPicker tarefaId={tarefa.id} responsavel={tarefa.responsavel} size="md" />
+        </div>
       </div>
 
       {/* Title */}
@@ -84,9 +87,6 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
       <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
           <TimeBadge time={tarefa.time} />
-          {tarefa.responsavel && (
-            <UserAvatar nome={tarefa.responsavel} size="xs" showName />
-          )}
         </div>
         <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
           {tarefa.comentarios.length > 0 && (
