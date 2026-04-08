@@ -177,8 +177,10 @@ function InlineSelect<T extends string>({
   )
 }
 
-export function TaskDetailsDrawer({ tarefa, onClose }: TaskDetailsDrawerProps) {
-  const { updateTarefa, deleteTarefa, projetos, usuarios } = useStore()
+export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDrawerProps) {
+  const { updateTarefa, deleteTarefa, projetos, usuarios, tarefas } = useStore()
+  // Sempre busca a versão mais recente do store para evitar dados desatualizados
+  const tarefa = tarefas.find(t => t.id === tarefaProp?.id) ?? tarefaProp
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [novoComentario, setNovoComentario] = useState('')
   const [novoCheckItem, setNovoCheckItem] = useState('')
