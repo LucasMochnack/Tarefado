@@ -1,5 +1,6 @@
-import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, ToggleLeft, ToggleRight, Camera } from 'lucide-react'
+import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, ToggleLeft, ToggleRight, Camera, Save, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import type { Usuario } from '@/store/useStore'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { RecorrenteFormModal } from '@/components/tasks/RecorrenteFormModal'
@@ -39,6 +40,10 @@ export function Configuracoes() {
   const [resetOpen, setResetOpen] = useState(false)
   const [recorrenteModal, setRecorrenteModal] = useState(false)
   const [editandoRecorrente, setEditandoRecorrente] = useState<TarefaRecorrente | undefined>()
+  const [editandoUsuarioId, setEditandoUsuarioId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ nome: '', email: '', senha: '', cargo: '' })
+
+  const iCls = 'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30'
 
   const handleReset = () => {
     useStore.setState({ tarefas: TAREFAS_INICIAIS, projetos: PROJETOS_INICIAIS })
@@ -112,10 +117,24 @@ export function Configuracoes() {
               toast.success('Times atualizados!')
             }
             const veeTudo = u.admin || timesUsuario.includes('performance') || timesUsuario.length === 0
+            const isEditando = editandoUsuarioId === u.id
+
+            const startEdit = () => {
+              setEditandoUsuarioId(u.id)
+              setEditForm({ nome: u.nome, email: u.email, senha: u.senha, cargo: u.cargo ?? '' })
+            }
+            const cancelEdit = () => setEditandoUsuarioId(null)
+            const saveEdit = () => {
+              if (!editForm.nome.trim()) { toast.error('Nome obrigatório'); return }
+              if (!editForm.email.trim()) { toast.error('E-mail obrigatório'); return }
+              updateUsuario(u.id, { nome: editForm.nome.trim(), email: editForm.email.trim(), senha: editForm.senha || u.senha, cargo: editForm.cargo || undefined })
+              toast.success('Usuário atualizado!')
+              setEditandoUsuarioId(null)
+            }
 
             return (
             <div key={u.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-3">
-              {/* Linha superior: avatar + nome + cores */}
+              {/* Linha superior: avatar + nome + editar */}
               <div className="flex items-center gap-3">
                 {/* Avatar com upload */}
                 <label className="relative cursor-pointer group flex-shrink-0">
@@ -131,40 +150,76 @@ export function Configuracoes() {
                   <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Camera size={14} className="text-white" />
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const reader = new FileReader()
-                      reader.onload = ev => {
-                        updateUsuario(u.id, { foto: ev.target?.result as string })
-                        toast.success('Foto atualizada!')
-                      }
-                      reader.readAsDataURL(file)
-                    }}
-                  />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files?.[0]; if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = ev => { updateUsuario(u.id, { foto: ev.target?.result as string }); toast.success('Foto atualizada!') }
+                    reader.readAsDataURL(file)
+                  }} />
                 </label>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.nome}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
+                    {u.cargo && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                        {u.cargo}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {CORES_USUARIO.map(cor => (
-                    <button
-                      key={cor}
-                      onClick={() => { updateUsuario(u.id, { cor }); toast.success('Cor atualizada!') }}
-                      className={cn(
-                        'w-4 h-4 rounded-full transition-transform hover:scale-110',
-                        u.cor === cor && 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-600'
-                      )}
-                      style={{ backgroundColor: cor }}
-                      title={cor}
-                    />
-                  ))}
+                <button
+                  onClick={isEditando ? cancelEdit : startEdit}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 transition-colors flex-shrink-0"
+                  title={isEditando ? 'Cancelar' : 'Editar usuário'}
+                >
+                  {isEditando ? <X size={15} /> : <Edit2 size={14} />}
+                </button>
+              </div>
+
+              {/* Formulário de edição inline */}
+              {isEditando && (
+                <div className="border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-3 space-y-2.5 bg-white dark:bg-slate-900">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Nome</label>
+                      <input value={editForm.nome} onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))} className={iCls} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">E-mail</label>
+                      <input value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} className={iCls} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Nova senha</label>
+                      <input type="password" placeholder="Deixe em branco para manter" value={editForm.senha} onChange={e => setEditForm(f => ({ ...f, senha: e.target.value }))} className={iCls} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Cargo / Time principal</label>
+                      <select value={editForm.cargo} onChange={e => setEditForm(f => ({ ...f, cargo: e.target.value }))} className={iCls}>
+                        <option value="">— Sem cargo —</option>
+                        <option value="Administrador">Administrador</option>
+                        {TODOS_TIMES.map(t => <option key={t.value} value={t.label.replace(' ★', '')}>{t.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={cancelEdit} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+                    <button onClick={saveEdit} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-indigo-600 text-white hover:bg-indigo-700">
+                      <Save size={12} /> Salvar
+                    </button>
+                  </div>
                 </div>
+              )}
+
+              {/* Cores */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-xs text-slate-400 mr-1">Cor:</p>
+                {CORES_USUARIO.map(cor => (
+                  <button key={cor} onClick={() => { updateUsuario(u.id, { cor }); toast.success('Cor atualizada!') }}
+                    className={cn('w-4 h-4 rounded-full transition-transform hover:scale-110', u.cor === cor && 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-600')}
+                    style={{ backgroundColor: cor }} title={cor}
+                  />
+                ))}
               </div>
 
               {/* Times de acesso */}

@@ -19,9 +19,26 @@ interface TaskFormModalProps {
   defaultProjetoId?: string
 }
 
+// Mapeia cargo (texto) para Time value
+const CARGO_TIME_MAP: Record<string, string> = {
+  'Alta Renda': 'alta-renda',
+  'Varejo': 'varejo',
+  'On Demand': 'on-demand',
+  'B2C': 'b2c',
+  'Campinas': 'campinas',
+  'Produtos': 'produtos',
+  'Performance': 'performance',
+  'Geral': 'geral',
+}
+
 export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defaultTime, defaultProjetoId }: TaskFormModalProps) {
-  const { addTarefa, updateTarefa, projetos, usuarios } = useStore()
+  const { addTarefa, updateTarefa, projetos, usuarios, usuarioEmail } = useStore()
   const isEdit = !!tarefa
+
+  // Determina o time padrão pelo cargo do usuário logado
+  const usuarioLogado = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())
+  const timeDoUsuario = usuarioLogado?.cargo ? (CARGO_TIME_MAP[usuarioLogado.cargo] as Time) : undefined
+  const timeDefault = defaultTime ?? timeDoUsuario ?? 'b2c'
 
   const [form, setForm] = useState({
     titulo: '',
@@ -33,7 +50,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     horaFim: '',
     responsavel: '',
     projetoId: defaultProjetoId || projetos[0]?.id || '',
-    time: (defaultTime || 'b2c') as Time,
+    time: timeDefault as Time,
     tags: '',
   })
 
@@ -68,7 +85,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         horaFim: '',
         responsavel: '',
         projetoId: defaultProjetoId || projetos[0]?.id || '',
-        time: defaultTime || 'b2c',
+        time: timeDefault,
         tags: '',
       })
       setChecklist([])

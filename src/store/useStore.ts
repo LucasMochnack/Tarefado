@@ -13,6 +13,7 @@ export interface Usuario {
   admin: boolean
   cor?: string
   foto?: string     // base64 da foto de perfil
+  cargo?: string    // cargo/time principal — vira default ao criar tarefa
   times?: string[]  // times que o usuário pode ver; vazio/undefined = vê tudo
 }
 
