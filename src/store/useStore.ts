@@ -34,7 +34,8 @@ const USUARIOS_INICIAIS: Usuario[] = [
     nome: 'Leonardo Teixeira',
     email: 'leonardo.teixeira@altovalorinvestimentos.com.br',
     senha: 'cachorro67',
-    admin: false,
+    admin: true,   // vê todos os times
+    times: undefined,
   },
 ]
 
@@ -108,10 +109,16 @@ export const useStore = create<AppStore>()(
         const senhaTrim = senha.trim()
         const { usuarios } = get()
 
-        // Garante que os usuários iniciais sempre existam (mesmo sem localStorage)
+        // Garante que os usuários seed sempre existam e tenham as permissões corretas
         const idsExistentes = new Set(usuarios.map(u => u.id))
         const faltando = USUARIOS_INICIAIS.filter(u => !idsExistentes.has(u.id))
-        const lista = faltando.length > 0 ? [...faltando, ...usuarios] : usuarios
+        // Sincroniza admin/times do seed nos usuários já existentes
+        const sincronizados = usuarios.map(u => {
+          const seed = USUARIOS_INICIAIS.find(s => s.id === u.id)
+          if (!seed) return u
+          return { ...u, admin: seed.admin, times: seed.times }
+        })
+        const lista = faltando.length > 0 ? [...faltando, ...sincronizados] : sincronizados
 
         const usuario = lista.find(
           u => u.email.toLowerCase() === emailNorm && u.senha === senhaTrim
