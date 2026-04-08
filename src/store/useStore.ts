@@ -26,6 +26,18 @@ const USUARIO_PADRAO: Usuario = {
   admin: true,
 }
 
+// Usuários que sempre existem independente do localStorage
+const USUARIOS_INICIAIS: Usuario[] = [
+  USUARIO_PADRAO,
+  {
+    id: 'usr-leonardo',
+    nome: 'Leonardo Teixeira',
+    email: 'leonardo.teixeira@altovalorinvestimentos.com.br',
+    senha: 'cachorro67',
+    admin: false,
+  },
+]
+
 interface AppStore {
   tarefas: Tarefa[]
   projetos: Projeto[]
@@ -84,7 +96,7 @@ export const useStore = create<AppStore>()(
     (set, get) => ({
       tarefas: TAREFAS_INICIAIS,
       projetos: PROJETOS_INICIAIS,
-      usuarios: [USUARIO_PADRAO],
+      usuarios: USUARIOS_INICIAIS,
       tarefasRecorrentes: [],
       darkMode: false,
       autenticado: false,
@@ -96,17 +108,16 @@ export const useStore = create<AppStore>()(
         const senhaTrim = senha.trim()
         const { usuarios } = get()
 
-        // Garante que o admin padrão sempre exista (mesmo sem localStorage)
-        const lista = usuarios.some(u => u.id === 'admin')
-          ? usuarios
-          : [USUARIO_PADRAO, ...usuarios]
+        // Garante que os usuários iniciais sempre existam (mesmo sem localStorage)
+        const idsExistentes = new Set(usuarios.map(u => u.id))
+        const faltando = USUARIOS_INICIAIS.filter(u => !idsExistentes.has(u.id))
+        const lista = faltando.length > 0 ? [...faltando, ...usuarios] : usuarios
 
         const usuario = lista.find(
           u => u.email.toLowerCase() === emailNorm && u.senha === senhaTrim
         )
         if (usuario) {
-          // Re-add admin to array if it was missing
-          if (!usuarios.some(u => u.id === 'admin')) {
+          if (faltando.length > 0) {
             set({ usuarios: lista })
           }
           set({ autenticado: true, usuarioNome: usuario.nome, usuarioEmail: usuario.email })
