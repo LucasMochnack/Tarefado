@@ -92,9 +92,23 @@ export const useStore = create<AppStore>()(
       usuarioEmail: '',
 
       login: (email, senha) => {
+        const emailNorm = email.trim().toLowerCase()
+        const senhaTrim = senha.trim()
         const { usuarios } = get()
-        const usuario = usuarios.find(u => u.email.toLowerCase() === email.toLowerCase() && u.senha === senha)
+
+        // Garante que o admin padrão sempre exista (mesmo sem localStorage)
+        const lista = usuarios.some(u => u.id === 'admin')
+          ? usuarios
+          : [USUARIO_PADRAO, ...usuarios]
+
+        const usuario = lista.find(
+          u => u.email.toLowerCase() === emailNorm && u.senha === senhaTrim
+        )
         if (usuario) {
+          // Re-add admin to array if it was missing
+          if (!usuarios.some(u => u.id === 'admin')) {
+            set({ usuarios: lista })
+          }
           set({ autenticado: true, usuarioNome: usuario.nome, usuarioEmail: usuario.email })
           return true
         }

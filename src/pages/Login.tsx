@@ -113,6 +113,11 @@ export function Login() {
               </div>
             )}
 
+            {/* Dica acesso padrão */}
+            <div className="text-xs text-slate-400 dark:text-slate-500 text-center pt-1">
+              Acesso padrão: <span className="font-mono text-slate-500 dark:text-slate-400">admin@tarefado.com</span> / <span className="font-mono text-slate-500 dark:text-slate-400">admin123</span>
+            </div>
+
             {/* Botão */}
             <button
               type="submit"
