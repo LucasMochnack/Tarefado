@@ -174,6 +174,10 @@ export const useStore = create<AppStore>()(
 
       updateTarefa: (id, data) => {
         const { projetos } = get()
+        // Ao concluir, remove automaticamente da Matriz de Eisenhower
+        if (data.status === 'concluido' && !('quadranteEisenhower' in data)) {
+          data = { ...data, quadranteEisenhower: undefined }
+        }
         set(state => {
           const novasTarefas = state.tarefas.map(t => {
             if (t.id !== id) return t
@@ -198,7 +202,9 @@ export const useStore = create<AppStore>()(
       },
 
       moveTarefa: (id, novoStatus) => {
-        get().updateTarefa(id, { status: novoStatus })
+        // Ao concluir, remove da Matriz de Eisenhower
+        const extra = novoStatus === 'concluido' ? { quadranteEisenhower: undefined } : {}
+        get().updateTarefa(id, { status: novoStatus, ...extra })
       },
 
       reorderTarefas: (activeId, overId) => {
