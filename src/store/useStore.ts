@@ -124,9 +124,8 @@ export const useStore = create<AppStore>()(
           u => u.email.toLowerCase() === emailNorm && u.senha === senhaTrim
         )
         if (usuario) {
-          if (faltando.length > 0) {
-            set({ usuarios: lista })
-          }
+          // Persiste sempre que houve mudança (novos usuários ou permissões sincronizadas)
+          set({ usuarios: lista })
           set({ autenticado: true, usuarioNome: usuario.nome, usuarioEmail: usuario.email })
           return true
         }
