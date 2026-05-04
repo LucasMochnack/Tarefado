@@ -100,6 +100,143 @@ function InlineText({
   )
 }
 
+// ── Descrição com suporte a tópicos (bullet list) ─────────────────────────
+function InlineBulletText({ value, onSave, placeholder }: {
+  value: string
+  onSave: (v: string) => void
+  placeholder?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      ref.current.focus()
+      const len = ref.current.value.length
+      ref.current.setSelectionRange(len, len)
+    }
+  }, [editing])
+
+  useEffect(() => { setDraft(value) }, [value])
+
+  const commit = () => {
+    setEditing(false)
+    const cleaned = draft.trim()
+    if (cleaned !== value.trim()) { onSave(cleaned); toast.success('Salvo!') }
+  }
+
+  const startEditing = () => {
+    // Se vazio, começa já com um bullet
+    setDraft(value || '• ')
+    setEditing(true)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') { setEditing(false); setDraft(value); return }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const ta = ref.current!
+      const pos = ta.selectionStart
+      const before = draft.slice(0, pos)
+      const after = draft.slice(ta.selectionEnd)
+
+      // Linha atual
+      const lineStart = before.lastIndexOf('\n') + 1
+      const currentLine = before.slice(lineStart)
+
+      // Se a linha atual é um bullet vazio (só "• "), encerra a lista
+      if (currentLine === '• ') {
+        const newDraft = before.slice(0, lineStart).trimEnd() + (after ? '\n' + after : '')
+        setDraft(newDraft)
+        const newPos = lineStart
+        setTimeout(() => ta.setSelectionRange(newPos, newPos), 0)
+        return
+      }
+
+      // Continua com bullet na próxima linha
+      const insert = '\n• '
+      const newDraft = before + insert + after
+      setDraft(newDraft)
+      const newPos = pos + insert.length
+      setTimeout(() => ta.setSelectionRange(newPos, newPos), 0)
+    }
+
+    // Backspace no início de um bullet remove o "• "
+    if (e.key === 'Backspace') {
+      const ta = ref.current!
+      const pos = ta.selectionStart
+      if (ta.selectionStart !== ta.selectionEnd) return
+      const before = draft.slice(0, pos)
+      const lineStart = before.lastIndexOf('\n') + 1
+      const currentLine = before.slice(lineStart)
+      if (currentLine === '• ') {
+        e.preventDefault()
+        const newDraft = draft.slice(0, lineStart > 0 ? lineStart - 1 : 0) + draft.slice(pos)
+        setDraft(newDraft)
+        const newPos = Math.max(0, lineStart - 1)
+        setTimeout(() => ta.setSelectionRange(newPos, newPos), 0)
+      }
+    }
+  }
+
+  // Renderiza o conteúdo salvo como lista visual
+  const renderContent = () => {
+    if (!value) {
+      return <span className="text-slate-400 dark:text-slate-500 italic text-sm">{placeholder || 'Clique para adicionar...'}</span>
+    }
+    const lines = value.split('\n').filter(l => l.trim())
+    const hasBullets = lines.some(l => l.startsWith('• '))
+    if (hasBullets) {
+      return (
+        <ul className="space-y-1">
+          {lines.map((line, i) =>
+            line.startsWith('• ') ? (
+              <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span className="text-indigo-500 font-bold mt-px flex-shrink-0">•</span>
+                <span className="leading-snug">{line.slice(2)}</span>
+              </li>
+            ) : (
+              <p key={i} className="text-sm text-slate-700 dark:text-slate-300 leading-snug">{line}</p>
+            )
+          )}
+        </ul>
+      )
+    }
+    return <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{value}</p>
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-1">
+        <textarea
+          ref={ref}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          rows={5}
+          placeholder="• Tópico 1&#10;• Tópico 2"
+          className="w-full rounded-lg border border-indigo-400 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none"
+        />
+        <p className="text-[10px] text-slate-400">Enter = novo tópico · Esc = cancelar · clique fora = salvar</p>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      onClick={startEditing}
+      className="cursor-text hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg px-2 py-1.5 -mx-2 transition-colors group relative min-h-[32px]"
+      title="Clique para editar"
+    >
+      {renderContent()}
+      <Pencil size={10} className="absolute top-2 right-1 opacity-0 group-hover:opacity-40 text-slate-400" />
+    </div>
+  )
+}
+
 function InlineDate({
   value,
   onSave,
@@ -315,14 +452,11 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
               {/* Descrição */}
               <div>
                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Descrição</h4>
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  <InlineText
-                    value={tarefa.descricao}
-                    onSave={v => save({ descricao: v })}
-                    placeholder="Clique para adicionar descrição..."
-                    multiline
-                  />
-                </p>
+                <InlineBulletText
+                  value={tarefa.descricao}
+                  onSave={v => save({ descricao: v })}
+                  placeholder="Clique para adicionar descrição..."
+                />
               </div>
 
               {/* Meta */}
