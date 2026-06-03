@@ -16,7 +16,6 @@ interface TaskFormModalProps {
   tarefa?: Tarefa
   defaultStatus?: StatusTarefa
   defaultTime?: Time
-  defaultProjetoId?: string
 }
 
 // Mapeia cargo (texto) para Time value
@@ -31,8 +30,8 @@ const CARGO_TIME_MAP: Record<string, string> = {
   'Geral': 'geral',
 }
 
-export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defaultTime, defaultProjetoId }: TaskFormModalProps) {
-  const { addTarefa, updateTarefa, projetos, usuarios, usuarioEmail } = useStore()
+export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defaultTime }: TaskFormModalProps) {
+  const { addTarefa, updateTarefa, usuarios, usuarioEmail } = useStore()
   const isEdit = !!tarefa
 
   // Determina o time padrão pelo cargo do usuário logado
@@ -48,10 +47,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     status: (defaultStatus || 'a-fazer') as StatusTarefa,
     prioridade: 'media' as NivelPrioridade,
     prazo: addDaysISO(7).slice(0, 10),
-    horaAgenda: '',
-    horaFim: '',
     responsavel: '',
-    projetoId: defaultProjetoId || projetos[0]?.id || '',
     time: timeDefault as Time,
     tags: '',
   })
@@ -68,10 +64,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         status: tarefa.status,
         prioridade: tarefa.prioridade,
         prazo: tarefa.prazo.slice(0, 10),
-        horaAgenda: tarefa.horaAgenda || '',
-        horaFim: (tarefa as any).horaFim || '',
         responsavel: tarefa.responsavel,
-        projetoId: tarefa.projetoId,
         time: tarefa.time,
         tags: tarefa.tags.join(', '),
       })
@@ -83,16 +76,13 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         status: defaultStatus || 'a-fazer',
         prioridade: 'media',
         prazo: addDaysISO(7).slice(0, 10),
-        horaAgenda: '',
-        horaFim: '',
         responsavel: '',
-        projetoId: defaultProjetoId || projetos[0]?.id || '',
         time: timeDefault,
         tags: '',
       })
       setChecklist([])
     }
-  }, [tarefa, open, defaultStatus, defaultTime, defaultProjetoId, projetos])
+  }, [tarefa, open, defaultStatus, defaultTime])
 
   const addCheckItem = () => {
     const texto = novoItem.trim()
@@ -113,8 +103,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     const data = {
       ...form,
       prazo: new Date(form.prazo).toISOString(),
-      horaAgenda: form.horaAgenda || undefined,
-      horaFim: form.horaFim || undefined,
+      projetoId: tarefa?.projetoId ?? '',
       tags,
       checklist,
       comentarios: tarefa?.comentarios || [],
@@ -193,7 +182,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelClass}>Prazo</label>
                 <input
@@ -204,24 +193,6 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                 />
               </div>
               <div>
-                <label className={labelClass}>Hora início</label>
-                <select value={form.horaAgenda} onChange={e => setForm(f => ({ ...f, horaAgenda: e.target.value }))} className={inputClass}>
-                  <option value="">Automático</option>
-                  {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Hora fim</label>
-                <select value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} className={inputClass}>
-                  <option value="">—</option>
-                  {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <label className={labelClass}>Responsável</label>
                 <select value={form.responsavel} onChange={e => setForm(f => ({ ...f, responsavel: e.target.value }))} className={inputClass}>
                   <option value="">Sem responsável</option>
@@ -230,9 +201,6 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Time</label>
                 <select value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value as Time }))} className={inputClass}>
@@ -244,13 +212,6 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                   <option value="produtos">Produtos</option>
                   <option value="performance">Performance</option>
                   <option value="geral">Geral</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Projeto</label>
-                <select value={form.projetoId} onChange={e => setForm(f => ({ ...f, projetoId: e.target.value }))} className={inputClass}>
-                  <option value="">— Sem projeto —</option>
-                  {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </div>
             </div>

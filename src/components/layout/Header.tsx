@@ -3,14 +3,11 @@ import { Search, Plus, Sun, Moon, LogOut, User } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
-import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { useNavigate } from 'react-router-dom'
-import { cn } from '@/lib/utils'
 
 export function Header() {
   const { darkMode, toggleDarkMode, logout, usuarioNome } = useStore()
   const [taskOpen, setTaskOpen] = useState(false)
-  const [projectOpen, setProjectOpen] = useState(false)
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
 
@@ -30,7 +27,7 @@ export function Header() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               type="text"
-              placeholder="Buscar tarefas, projetos..."
+              placeholder="Buscar tarefas..."
               className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-400 focus:bg-white dark:focus:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-all"
             />
           </div>
@@ -45,14 +42,6 @@ export function Header() {
           >
             <Plus size={15} />
             <span className="hidden sm:inline">Tarefa</span>
-          </button>
-
-          <button
-            onClick={() => setProjectOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
-          >
-            <Plus size={15} />
-            <span className="hidden md:inline">Projeto</span>
           </button>
 
           <button
@@ -83,7 +72,6 @@ export function Header() {
       </header>
 
       <TaskFormModal open={taskOpen} onOpenChange={setTaskOpen} />
-      <ProjectFormModal open={projectOpen} onOpenChange={setProjectOpen} />
     </>
   )
 }

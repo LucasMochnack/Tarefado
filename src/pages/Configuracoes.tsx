@@ -31,7 +31,7 @@ const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 export function Configuracoes() {
   const {
     darkMode, toggleDarkMode,
-    tarefas, projetos,
+    tarefas,
     recalcularPrioridades,
     usuarios, updateUsuario, addUsuario,
     tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente,
@@ -377,7 +377,6 @@ export function Configuracoes() {
       <Section title="Dados e Persistência">
         <div className="space-y-3">
           <InfoRow label="Total de tarefas" value={tarefas.length.toString()} />
-          <InfoRow label="Total de projetos" value={projetos.length.toString()} />
           <InfoRow label="Tarefas recorrentes" value={tarefasRecorrentes.length.toString()} />
           <InfoRow label="Armazenamento" value="localStorage (local)" />
           <InfoRow label="Persistência" value="Automática" />

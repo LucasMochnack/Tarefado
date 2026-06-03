@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "tarefado",
-      "runtimeExecutable": "cmd.exe",
-      "runtimeArgs": ["/c", "C:\\Users\\lucas.mochnack.MANHATTAN\\Grupo Alto Valor Dropbox\\Lucas Mochnack\\PC\\Downloads\\Claude\\Tarefado\\start-dev.cmd"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 5173
     }
   ]

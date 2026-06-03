@@ -20,7 +20,7 @@ const TODOS_TIMES: { value: Time; label: string }[] = [
 ]
 
 export function Kanban() {
-  const { projetos, recalcularPrioridades } = useStore()
+  const { recalcularPrioridades } = useStore()
   const [taskOpen, setTaskOpen] = useState(false)
   const [filtros, setFiltros] = useState<FiltrosTarefa>({})
   const [showFilters, setShowFilters] = useState(false)
@@ -119,10 +119,6 @@ export function Kanban() {
           <select value={filtros.time || ''} onChange={e => setFiltros(f => ({ ...f, time: e.target.value as Time || undefined }))} className={selectClass}>
             <option value="">Todos os times</option>
             {TODOS_TIMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <select value={filtros.projeto || ''} onChange={e => setFiltros(f => ({ ...f, projeto: e.target.value || undefined }))} className={selectClass}>
-            <option value="">Todos os projetos</option>
-            {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
           <select value={filtros.prioridade || ''} onChange={e => setFiltros(f => ({ ...f, prioridade: e.target.value as NivelPrioridade || undefined }))} className={selectClass}>
             <option value="">Todas as prioridades</option>

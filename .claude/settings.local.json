@@ -40,7 +40,14 @@
       "Bash(grep -E \"\\\\.\\(txt|md|json|png|jpg|jpeg|svg\\)$\")",
       "Bash(find 'C:\\\\Users\\\\lucas.mochnack.MANHATTAN\\\\Grupo Alto Valor Dropbox\\\\Lucas Mochnack\\\\PC\\\\Downloads\\\\Claude\\\\Tarefado/src' -type f \\\\\\(-iname *color* -o -iname *brand* -o -iname *design* -o -iname *.css \\\\\\))",
       "Bash(python -c \"import fitz; doc=fitz.open\\(''''MANUAL-DE-MARCA-ALTO-VALOR-INVESTIMENTOS.pdf''''\\); [print\\(f''''P{i+1}:'''', doc[i].get_text\\(\\)\\) for i in range\\(min\\(20, doc.page_count\\)\\)]\")",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(.nodeenv/Scripts/npm.cmd run:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(npx vite:*)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

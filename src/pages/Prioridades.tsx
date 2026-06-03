@@ -81,7 +81,7 @@ const QUADRANTES: {
 ]
 
 export function Prioridades() {
-  const { tarefas: todasTarefas, projetos, recalcularPrioridades, updateTarefa } = useStore()
+  const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa } = useStore()
   const timesPermitidos = usePermissoes()
   const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)

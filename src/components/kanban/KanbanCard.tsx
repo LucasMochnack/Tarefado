@@ -1,7 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Tarefa } from '@/types'
-import { useStore } from '@/store/useStore'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, prazoLabel } from '@/utils/dates'
@@ -16,8 +15,6 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
-  const projetos = useStore(s => s.projetos)
-  const projeto = projetos.find(p => p.id === tarefa.projetoId)
   const overdue = isOverdue(tarefa.prazo) && tarefa.status !== 'concluido'
   const checkDone = tarefa.checklist.filter(c => c.concluido).length
 
@@ -63,14 +60,6 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
       <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug mb-2 line-clamp-2 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
         {tarefa.titulo}
       </h3>
-
-      {/* Project */}
-      {projeto && (
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: projeto.cor }} />
-          <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{projeto.nome}</span>
-        </div>
-      )}
 
       {/* Tags */}
       {tarefa.tags.length > 0 && (
