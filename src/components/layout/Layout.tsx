@@ -11,8 +11,17 @@ export function Layout() {
   const processarRecorrentes = useStore(s => s.processarRecorrentes)
 
   useEffect(() => {
+    // Processa ao abrir o app e sempre que a aba volta ao foco
+    // (cobre o caso de deixar o app aberto e virar o dia)
     processarRecorrentes()
-  }, [])
+    const onFocus = () => processarRecorrentes()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [processarRecorrentes])
 
   return (
     <div className={darkMode ? 'dark' : ''}>

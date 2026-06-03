@@ -136,15 +136,28 @@ export function RecorrenteFormModal({ open, onOpenChange, recorrente }: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Responsável">
-                <select value={responsavel} onChange={e => setResponsavel(e.target.value)} className={inputCls}>
-                  <option value="">Sem responsável</option>
-                  {usuarios?.map((u: any) => <option key={u.id} value={u.nome}>{u.nome}</option>)}
+                <input
+                  value={responsavel}
+                  onChange={e => setResponsavel(e.target.value)}
+                  list="responsaveis-rec"
+                  placeholder="Nome do responsável"
+                  className={inputCls}
+                />
+                <datalist id="responsaveis-rec">
+                  {usuarios?.map((u: any) => <option key={u.id} value={u.nome} />)}
+                </datalist>
+              </Field>
+              <Field label="Projeto">
+                <select value={projetoId} onChange={e => setProjetoId(e.target.value)} className={inputCls}>
+                  <option value="">— Sem projeto —</option>
+                  {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </Field>
-              <Field label="Horário">
-                <input type="time" value={horaAgenda} onChange={e => setHoraAgenda(e.target.value)} className={inputCls} />
-              </Field>
             </div>
+
+            <Field label="Horário (opcional)">
+              <input type="time" value={horaAgenda} onChange={e => setHoraAgenda(e.target.value)} className={inputCls} />
+            </Field>
 
             {/* Recorrência */}
             <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
@@ -218,11 +231,6 @@ export function RecorrenteFormModal({ open, onOpenChange, recorrente }: Props) {
               </div>
               <span className="text-sm text-slate-700 dark:text-slate-300">Ativa</span>
             </label>
-
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-2">
-              A tarefa é criada automaticamente quando o app é aberto no dia programado.
-              O horário fica registrado na tarefa, mas não envia notificação.
-            </p>
 
             <div className="flex justify-end gap-2 pt-2">
               <Dialog.Close asChild>
