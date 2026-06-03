@@ -25,7 +25,7 @@ export function Layout() {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 bg-[radial-gradient(110%_80%_at_100%_0%,rgba(11,156,117,0.06),transparent_55%),radial-gradient(90%_70%_at_0%_100%,rgba(212,145,47,0.05),transparent_50%)]">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <Header />

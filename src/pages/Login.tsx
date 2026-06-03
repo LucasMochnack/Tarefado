@@ -34,8 +34,8 @@ export function Login() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
       {/* Fundo decorativo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-emerald-400/10 dark:bg-emerald-500/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-indigo-400/10 dark:bg-indigo-500/5 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-indigo-400/15 dark:bg-indigo-500/10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-clay-300/15 dark:bg-clay-500/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
@@ -44,10 +44,10 @@ export function Login() {
 
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 ring-1 ring-black/5">
               <Zap size={28} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Tarefado</h1>
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">Tarefado</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestão de tarefas e times</p>
           </div>
 
@@ -124,7 +124,7 @@ export function Login() {
               disabled={carregando || !email || !senha}
               className={cn(
                 'w-full py-2.5 rounded-xl font-semibold text-sm text-white transition-all',
-                'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700',
+                'bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800',
                 'shadow-md hover:shadow-lg active:scale-[0.98]',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'
               )}

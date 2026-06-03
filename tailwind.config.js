@@ -5,19 +5,46 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Alto Valor brand colors — override indigo throughout the app
+        // Alto Valor brand colors — override indigo throughout the app (refined emerald)
         indigo: {
-          50:  '#e6faf5',
-          100: '#b3f0de',
-          200: '#80e5c7',
-          300: '#4ddaaf',
-          400: '#1ad099',
-          500: '#00bd85',
-          600: '#009974',
-          700: '#007a5d',
-          800: '#005c46',
-          900: '#003d2f',
-          950: '#001f18',
+          50:  '#e9faf4',
+          100: '#c6f2e1',
+          200: '#92e6c8',
+          300: '#54d4ab',
+          400: '#1fbb8e',
+          500: '#0b9c75',
+          600: '#067a5d',
+          700: '#0a624c',
+          800: '#0b4e3d',
+          900: '#0a4034',
+          950: '#03241d',
+        },
+        // Warm "espresso & paper" neutrals — repurpose slate app-wide for an editorial feel
+        slate: {
+          50:  '#faf8f4',
+          100: '#f3efe8',
+          200: '#e8e1d5',
+          300: '#d6ccbb',
+          400: '#ada291',
+          500: '#7d7464',
+          600: '#5a5343',
+          700: '#423c30',
+          800: '#2a2419',
+          900: '#1a1610',
+          950: '#0f0c07',
+        },
+        // Warm gold/clay — refined secondary accent
+        clay: {
+          50:  '#fbf3e6',
+          100: '#f6e3c4',
+          200: '#eecb92',
+          300: '#e3ad5c',
+          400: '#d4912f',
+          500: '#bd7a25',
+          600: '#9c611f',
+          700: '#7a4c1d',
+          800: '#5e3c1c',
+          900: '#4a3018',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -51,7 +78,12 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Hanken Grotesk"', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        soft: '0 1px 2px rgba(40,30,15,0.05), 0 10px 30px -14px rgba(40,30,15,0.18)',
+        card: '0 1px 0 rgba(40,30,15,0.03), 0 2px 8px -3px rgba(40,30,15,0.10)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',

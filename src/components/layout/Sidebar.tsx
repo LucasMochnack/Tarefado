@@ -31,11 +31,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     )}>
       {/* Logo */}
       <div className={cn('flex items-center h-16 border-b border-slate-200 dark:border-slate-800 px-4', collapsed ? 'justify-center' : 'justify-between')}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <Zap size={14} className="text-white" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-sm ring-1 ring-black/5">
+            <Zap size={15} className="text-white" />
           </div>
-          {!collapsed && <span className="font-bold text-slate-900 dark:text-white text-base tracking-tight">Tarefado</span>}
+          {!collapsed && <span className="font-display font-semibold text-slate-900 dark:text-white text-xl tracking-tight">Tarefado</span>}
         </div>
         <button
           onClick={onToggle}
