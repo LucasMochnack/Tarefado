@@ -99,7 +99,7 @@ export const useStore = create<AppStore>()(
       projetos: PROJETOS_INICIAIS,
       usuarios: USUARIOS_INICIAIS,
       tarefasRecorrentes: [],
-      darkMode: false,
+      darkMode: true,
       autenticado: false,
       usuarioNome: '',
       usuarioEmail: '',

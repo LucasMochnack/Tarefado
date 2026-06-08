@@ -3,42 +3,43 @@
 @tailwind utilities;
 
 @layer base {
+  /* Daylight direction (light, clean) */
   :root {
-    /* Warm "paper & espresso" palette */
-    --background: 40 33% 97%;
-    --foreground: 38 24% 9%;
-    --card: 40 40% 99%;
-    --card-foreground: 38 24% 9%;
-    --primary: 163 87% 33%;
-    --primary-foreground: 40 40% 99%;
-    --secondary: 40 30% 94%;
-    --secondary-foreground: 38 24% 14%;
-    --muted: 40 30% 94%;
-    --muted-foreground: 35 12% 44%;
-    --accent: 40 30% 94%;
-    --accent-foreground: 38 24% 14%;
-    --border: 38 28% 87%;
-    --input: 38 28% 87%;
-    --ring: 163 87% 33%;
+    --background: 214 26% 95%;
+    --foreground: 218 43% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 218 43% 11%;
+    --primary: 159 85% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 30% 96%;
+    --secondary-foreground: 218 43% 14%;
+    --muted: 214 30% 96%;
+    --muted-foreground: 212 16% 43%;
+    --accent: 214 30% 96%;
+    --accent-foreground: 218 43% 14%;
+    --border: 214 30% 92%;
+    --input: 214 30% 92%;
+    --ring: 159 85% 34%;
     --radius: 0.75rem;
   }
 
+  /* Midnight Emerald direction (dark, default) */
   .dark {
-    --background: 38 24% 8%;
-    --foreground: 40 26% 93%;
-    --card: 38 24% 8%;
-    --card-foreground: 40 26% 93%;
-    --primary: 161 70% 42%;
-    --primary-foreground: 38 24% 8%;
-    --secondary: 38 22% 14%;
-    --secondary-foreground: 40 26% 93%;
-    --muted: 38 22% 14%;
-    --muted-foreground: 36 12% 62%;
-    --accent: 38 22% 14%;
-    --accent-foreground: 40 26% 93%;
-    --border: 38 22% 15%;
-    --input: 38 22% 15%;
-    --ring: 161 70% 42%;
+    --background: 218 38% 5%;
+    --foreground: 212 40% 93%;
+    --card: 218 31% 9%;
+    --card-foreground: 212 40% 93%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 158 80% 6%;
+    --secondary: 218 30% 12%;
+    --secondary-foreground: 212 40% 93%;
+    --muted: 218 30% 12%;
+    --muted-foreground: 212 17% 64%;
+    --accent: 218 30% 12%;
+    --accent-foreground: 212 40% 93%;
+    --border: 218 32% 15%;
+    --input: 218 32% 15%;
+    --ring: 160 84% 39%;
     --radius: 0.75rem;
   }
 
@@ -48,16 +49,17 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    font-feature-settings: 'cv11' 1, 'ss01' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  /* Editorial serif for page titles & the brand mark */
+  /* Display font (Plus Jakarta Sans) for page titles & the brand mark */
   h1, .font-display {
-    font-family: 'Fraunces', Georgia, serif;
-    letter-spacing: -0.01em;
+    font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
 
   html {
@@ -65,7 +67,7 @@
   }
 
   ::selection {
-    background-color: rgba(11, 156, 117, 0.22);
+    background-color: rgba(16, 185, 129, 0.22);
     color: inherit;
   }
 }
@@ -73,7 +75,7 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(125, 116, 100, 0.4) transparent;
+    scrollbar-color: rgba(120, 134, 150, 0.4) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
@@ -83,7 +85,7 @@
     background: transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(125, 116, 100, 0.4);
+    background-color: rgba(120, 134, 150, 0.4);
     border-radius: 4px;
   }
 
@@ -99,7 +101,7 @@
 .overflow-y-auto,
 .overflow-x-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(125, 116, 100, 0.3) transparent;
+  scrollbar-color: rgba(120, 134, 150, 0.3) transparent;
 }
 .overflow-y-auto::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar {
@@ -108,6 +110,6 @@
 }
 .overflow-y-auto::-webkit-scrollbar-thumb,
 .overflow-x-auto::-webkit-scrollbar-thumb {
-  background-color: rgba(125, 116, 100, 0.3);
+  background-color: rgba(120, 134, 150, 0.3);
   border-radius: 4px;
 }

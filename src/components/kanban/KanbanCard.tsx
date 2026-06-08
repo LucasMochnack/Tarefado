@@ -8,6 +8,18 @@ import { Calendar, MessageSquare, CheckSquare, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
 
+// Accent color per team — signature left bar on each card (from the design tokens)
+const TEAM_ACCENT: Record<string, string> = {
+  'performance': '#e8849f',
+  'on-demand': '#2fc89a',
+  'alta-renda': '#a98cf0',
+  'varejo': '#46b6da',
+  'b2c': '#d39a3f',
+  'campinas': '#2ec8b6',
+  'produtos': '#d77fd0',
+  'geral': '#5d6b7d',
+}
+
 interface KanbanCardProps {
   tarefa: Tarefa
   onClick: (t: Tarefa) => void
@@ -33,15 +45,21 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
       {...listeners}
       onClick={() => onClick(tarefa)}
       className={cn(
-        'bg-white dark:bg-slate-900 rounded-xl border p-3.5 cursor-pointer',
-        'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200',
+        'relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl border p-3.5 pl-4 cursor-pointer',
+        'hover:shadow-card hover:-translate-y-0.5 transition-all duration-200',
         'select-none group',
         overdue
           ? 'border-red-200 dark:border-red-900/50 hover:border-red-300'
-          : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700',
+          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600',
         (isDragging || isSortableDragging) && 'opacity-50 shadow-xl rotate-1 scale-105'
       )}
     >
+      {/* Accent bar by team */}
+      <span
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+        style={{ backgroundColor: TEAM_ACCENT[tarefa.time] ?? TEAM_ACCENT.geral }}
+      />
+
       {/* Priority + avatar */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <PriorityBadge nivel={tarefa.nivelPrioridade} size="xs" />

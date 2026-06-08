@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Zap, ChevronLeft
+  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,10 +32,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className={cn('flex items-center h-16 border-b border-slate-200 dark:border-slate-800 px-4', collapsed ? 'justify-center' : 'justify-between')}>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-sm ring-1 ring-black/5">
-            <Zap size={15} className="text-white" />
+          <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shadow-[0_6px_16px_-8px_theme(colors.indigo.500)]">
+            <Check size={19} strokeWidth={3} className="text-indigo-950" />
           </div>
-          {!collapsed && <span className="font-display font-semibold text-slate-900 dark:text-white text-xl tracking-tight">Tarefado</span>}
+          {!collapsed && (
+            <div className="min-w-0 leading-none">
+              <div className="font-display font-extrabold text-slate-900 dark:text-white text-lg tracking-tight">Tarefado</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 mt-1">Alto Valor</div>
+            </div>
+          )}
         </div>
         <button
           onClick={onToggle}
