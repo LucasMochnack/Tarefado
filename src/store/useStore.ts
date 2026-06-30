@@ -90,6 +90,7 @@ interface AppStore {
   addProjeto: (projeto: Omit<Projeto, 'id' | 'criadoEm' | 'atualizadoEm' | 'progresso'>) => void
   updateProjeto: (id: string, data: Partial<Projeto>) => void
   deleteProjeto: (id: string) => void
+  reordenarProjetos: (orderedIds: string[]) => void
 
   toggleDarkMode: () => void
 }
@@ -352,6 +353,17 @@ export const useStore = create<AppStore>()(
           // Se o projeto excluído estava filtrado, volta para "Todos os projetos"
           projetoSelecionado: state.projetoSelecionado === id ? null : state.projetoSelecionado,
         }))
+      },
+
+      // Reordena os projetos conforme a lista de ids (ordem da sidebar)
+      reordenarProjetos: (orderedIds) => {
+        set(state => {
+          const pos = new Map(orderedIds.map((id, i) => [id, i]))
+          const projetos = [...state.projetos].sort(
+            (a, b) => (pos.get(a.id) ?? 999) - (pos.get(b.id) ?? 999)
+          )
+          return { projetos }
+        })
       },
 
       toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),

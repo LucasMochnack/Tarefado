@@ -1,12 +1,68 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange
+  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange, GripVertical
 } from 'lucide-react'
+import {
+  DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
 import { Projeto } from '@/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
+
+// Linha de projeto arrastável (alça = grip); clique no nome seleciona, lápis edita
+function SortableProjetoRow({ p, ativo, onSelect, onEdit }: {
+  p: Projeto
+  ativo: boolean
+  onSelect: () => void
+  onEdit: (e: React.MouseEvent) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex items-center rounded-lg transition-colors',
+        isDragging && 'opacity-70 bg-white dark:bg-slate-800 shadow-lg',
+        ativo ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        title="Arraste para reordenar"
+        aria-label="Arraste para reordenar"
+        className="cursor-grab active:cursor-grabbing touch-none pl-1.5 pr-0.5 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 flex-shrink-0"
+      >
+        <GripVertical size={13} />
+      </button>
+      <button
+        onClick={onSelect}
+        className={cn(
+          'flex-1 min-w-0 flex items-center gap-2 pr-1 py-2 text-sm font-medium text-left transition-colors',
+          ativo ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+        )}
+      >
+        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10" style={{ backgroundColor: p.cor }} />
+        <span className="flex-1 truncate">{p.nome}</span>
+      </button>
+      <button
+        onClick={onEdit}
+        title="Editar projeto (nome, cor…)"
+        className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 mr-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 transition-all flex-shrink-0"
+      >
+        <Pencil size={13} />
+      </button>
+    </div>
+  )
+}
 
 const navItems = [
   { to: '/tarefas', icon: ListTodo, label: 'Tarefas' },
@@ -21,11 +77,23 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
+  const { projetos, projetoSelecionado, setProjetoSelecionado, reordenarProjetos } = useStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [projModalOpen, setProjModalOpen] = useState(false)
   const [projetoEdit, setProjetoEdit] = useState<Projeto | undefined>(undefined)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  const handleProjetoDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const ids = projetos.map(p => p.id)
+    const oldIndex = ids.indexOf(active.id as string)
+    const newIndex = ids.indexOf(over.id as string)
+    if (oldIndex === -1 || newIndex === -1) return
+    reordenarProjetos(arrayMove(ids, oldIndex, newIndex))
+  }
 
   const abrirNovoProjeto = () => { setProjetoEdit(undefined); setProjModalOpen(true) }
   const abrirEditarProjeto = (e: React.MouseEvent, p: Projeto) => {
@@ -128,54 +196,35 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </button>
 
           {/* Lista de projetos */}
-          {projetos.map(p => {
-            const ativo = projetoSelecionado === p.id
-            if (collapsed) {
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => selecionarProjeto(p.id)}
-                  title={p.nome}
-                  className={projItemClass(ativo)}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-                    style={{ backgroundColor: p.cor }}
-                  />
-                </button>
-              )
-            }
-            return (
-              <div
+          {collapsed ? (
+            projetos.map(p => (
+              <button
                 key={p.id}
-                className={cn(
-                  'group flex items-center rounded-lg transition-colors',
-                  ativo ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                )}
+                onClick={() => selecionarProjeto(p.id)}
+                title={p.nome}
+                className={projItemClass(projetoSelecionado === p.id)}
               >
-                <button
-                  onClick={() => selecionarProjeto(p.id)}
-                  className={cn(
-                    'flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2 text-sm font-medium text-left transition-colors',
-                    ativo ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
-                  )}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-                    style={{ backgroundColor: p.cor }}
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                  style={{ backgroundColor: p.cor }}
+                />
+              </button>
+            ))
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjetoDragEnd}>
+              <SortableContext items={projetos.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                {projetos.map(p => (
+                  <SortableProjetoRow
+                    key={p.id}
+                    p={p}
+                    ativo={projetoSelecionado === p.id}
+                    onSelect={() => selecionarProjeto(p.id)}
+                    onEdit={e => abrirEditarProjeto(e, p)}
                   />
-                  <span className="flex-1 truncate">{p.nome}</span>
-                </button>
-                <button
-                  onClick={e => abrirEditarProjeto(e, p)}
-                  title="Editar projeto (nome, cor…)"
-                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 mr-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 transition-all flex-shrink-0"
-                >
-                  <Pencil size={13} />
-                </button>
-              </div>
-            )
-          })}
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
 
           {/* Novo projeto (quando recolhido) */}
           {collapsed && (
