@@ -73,6 +73,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     status: (defaultStatus || 'a-fazer') as StatusTarefa,
     prioridade: 'media' as NivelPrioridade,
     prazo: addDaysISO(7).slice(0, 10),
+    horaAgenda: '',
     responsavel: '',
     time: timeDefault as Time,
     projetoId: projetoSelecionado || '',
@@ -91,6 +92,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         status: tarefa.status,
         prioridade: tarefa.prioridade,
         prazo: tarefa.prazo.slice(0, 10),
+        horaAgenda: tarefa.horaAgenda || '',
         responsavel: tarefa.responsavel,
         time: tarefa.time,
         projetoId: tarefa.projetoId || '',
@@ -104,6 +106,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         status: defaultStatus || 'a-fazer',
         prioridade: 'media',
         prazo: addDaysISO(7).slice(0, 10),
+        horaAgenda: '',
         responsavel: '',
         time: timeDefault,
         projetoId: projetoSelecionado || '',
@@ -132,6 +135,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     const data = {
       ...form,
       prazo: new Date(form.prazo).toISOString(),
+      horaAgenda: form.horaAgenda || undefined,
       tags,
       checklist,
       comentarios: tarefa?.comentarios || [],
@@ -215,7 +219,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
               </Field>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <Field label="Prazo">
                 <input
                   type="date"
@@ -224,6 +228,17 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                   className={cn(FIELD, 'cursor-pointer')}
                 />
               </Field>
+              <Field label="Horário (Google Agenda)">
+                <input
+                  type="time"
+                  value={form.horaAgenda}
+                  onChange={e => setForm(f => ({ ...f, horaAgenda: e.target.value }))}
+                  className={cn(FIELD, 'cursor-pointer')}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <Field label="Responsável">
                 <SelectField value={form.responsavel} onChange={v => setForm(f => ({ ...f, responsavel: v }))}>
                   <option value="">Sem responsável</option>

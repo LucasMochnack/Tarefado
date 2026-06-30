@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
-  X, Trash2, Calendar, User, Tag, Folder, Clock,
+  X, Trash2, Calendar, User, Tag, Folder, Clock, AlarmClock, CalendarPlus,
   MessageSquare, CheckSquare, Plus, Send, AlertCircle, Check, Pencil
 } from 'lucide-react'
 import { Tarefa, StatusTarefa, Time, NivelPrioridade } from '@/types'
@@ -12,6 +12,7 @@ import { TimeBadge } from '@/components/shared/TimeBadge'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { formatDate, formatRelative, isOverdue, prazoLabel } from '@/utils/dates'
 import { todayISO } from '@/utils/dates'
+import { googleCalendarUrl } from '@/utils/gcal'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/shared/UserAvatar'
@@ -466,6 +467,14 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
                     <InlineDate value={tarefa.prazo} onSave={v => save({ prazo: v })} />
                   </span>
                 </MetaItem>
+                <MetaItem icon={AlarmClock} label="Horário">
+                  <input
+                    type="time"
+                    value={tarefa.horaAgenda || ''}
+                    onChange={e => save({ horaAgenda: e.target.value || undefined })}
+                    className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 rounded px-1 -mx-1 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 focus:bg-indigo-50 dark:focus:bg-indigo-950/30 focus:outline-none cursor-pointer"
+                  />
+                </MetaItem>
                 <MetaItem icon={User} label="Responsável">
                   <div className="flex items-center gap-2">
                     {tarefa.responsavel && <UserAvatar nome={tarefa.responsavel} size="sm" />}
@@ -493,6 +502,20 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
                   <span className="text-sm text-slate-500 dark:text-slate-400">{formatRelative(tarefa.ultimaAtualizacao)}</span>
                 </MetaItem>
               </div>
+
+              {/* Google Agenda */}
+              <a
+                href={googleCalendarUrl(tarefa)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+              >
+                <CalendarPlus size={16} />
+                Adicionar à Google Agenda
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  · {tarefa.horaAgenda ? tarefa.horaAgenda : 'dia inteiro'}
+                </span>
+              </a>
 
               {/* Tags */}
               <div>
