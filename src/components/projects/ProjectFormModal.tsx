@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { X, Trash2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { Projeto, QuadranteEisenhower, StatusProjeto, Time } from '@/types'
 import { addDaysISO } from '@/utils/dates'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
@@ -16,8 +17,19 @@ interface ProjectFormModalProps {
 const CORES = ['#ef4444','#f97316','#f59e0b','#10b981','#3b82f6','#8b5cf6','#06b6d4','#ec4899','#6b7280']
 
 export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormModalProps) {
-  const { addProjeto, updateProjeto } = useStore()
+  const { addProjeto, updateProjeto, deleteProjeto, tarefas } = useStore()
   const isEdit = !!projeto
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const qtdTarefas = projeto ? tarefas.filter(t => t.projetoId === projeto.id).length : 0
+
+  const handleDelete = () => {
+    if (!projeto) return
+    deleteProjeto(projeto.id)
+    toast.success('Projeto excluído. As tarefas foram mantidas.')
+    setConfirmDelete(false)
+    onOpenChange(false)
+  }
 
   const [form, setForm] = useState({
     nome: '',
@@ -145,19 +157,44 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Dialog.Close asChild>
-                <button type="button" className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  Cancelar
+            <div className="flex items-center gap-3 pt-2">
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  title="Excluir projeto"
+                >
+                  <Trash2 size={15} /> Excluir
                 </button>
-              </Dialog.Close>
-              <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
-                {isEdit ? 'Salvar alterações' : 'Criar projeto'}
-              </button>
+              )}
+              <div className="flex gap-3 flex-1">
+                <Dialog.Close asChild>
+                  <button type="button" className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    Cancelar
+                  </button>
+                </Dialog.Close>
+                <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                  {isEdit ? 'Salvar alterações' : 'Criar projeto'}
+                </button>
+              </div>
             </div>
           </form>
         </Dialog.Content>
       </Dialog.Portal>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Excluir projeto"
+        description={
+          qtdTarefas > 0
+            ? `Excluir "${projeto?.nome}"? As ${qtdTarefas} tarefa${qtdTarefas !== 1 ? 's' : ''} deste projeto NÃO serão excluídas — apenas ficarão sem projeto.`
+            : `Excluir "${projeto?.nome}"?`
+        }
+        confirmLabel="Excluir projeto"
+        onConfirm={handleDelete}
+      />
     </Dialog.Root>
   )
 }

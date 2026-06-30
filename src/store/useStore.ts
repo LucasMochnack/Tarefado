@@ -325,13 +325,13 @@ export const useStore = create<AppStore>()(
       },
 
       deleteProjeto: (id) => {
-        set(state => {
-          const novasTarefas = state.tarefas.filter(t => t.projetoId !== id)
-          return {
-            projetos: state.projetos.filter(p => p.id !== id),
-            tarefas: novasTarefas,
-          }
-        })
+        set(state => ({
+          projetos: state.projetos.filter(p => p.id !== id),
+          // Mantém as tarefas — apenas desvincula do projeto (não apaga dados do usuário)
+          tarefas: state.tarefas.map(t => t.projetoId === id ? { ...t, projetoId: '' } : t),
+          // Se o projeto excluído estava filtrado, volta para "Todos os projetos"
+          projetoSelecionado: state.projetoSelecionado === id ? null : state.projetoSelecionado,
+        }))
       },
 
       toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
