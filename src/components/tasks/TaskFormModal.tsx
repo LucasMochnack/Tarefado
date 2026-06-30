@@ -31,7 +31,7 @@ const CARGO_TIME_MAP: Record<string, string> = {
 }
 
 export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defaultTime }: TaskFormModalProps) {
-  const { addTarefa, updateTarefa, usuarios, usuarioEmail } = useStore()
+  const { addTarefa, updateTarefa, usuarios, usuarioEmail, projetos, projetoSelecionado } = useStore()
   const isEdit = !!tarefa
 
   // Determina o time padrão pelo cargo do usuário logado
@@ -49,6 +49,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     prazo: addDaysISO(7).slice(0, 10),
     responsavel: '',
     time: timeDefault as Time,
+    projetoId: projetoSelecionado || '',
     tags: '',
   })
 
@@ -66,6 +67,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         prazo: tarefa.prazo.slice(0, 10),
         responsavel: tarefa.responsavel,
         time: tarefa.time,
+        projetoId: tarefa.projetoId || '',
         tags: tarefa.tags.join(', '),
       })
       setChecklist(tarefa.checklist.map(c => ({ ...c })))
@@ -78,6 +80,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         prazo: addDaysISO(7).slice(0, 10),
         responsavel: '',
         time: timeDefault,
+        projetoId: projetoSelecionado || '',
         tags: '',
       })
       setChecklist([])
@@ -103,7 +106,6 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     const data = {
       ...form,
       prazo: new Date(form.prazo).toISOString(),
-      projetoId: tarefa?.projetoId ?? '',
       tags,
       checklist,
       comentarios: tarefa?.comentarios || [],
@@ -216,14 +218,23 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>Tags (separadas por vírgula)</label>
-              <input
-                value={form.tags}
-                onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                className={inputClass}
-                placeholder="follow-up, cliente, proposta..."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Projeto</label>
+                <select value={form.projetoId} onChange={e => setForm(f => ({ ...f, projetoId: e.target.value }))} className={inputClass}>
+                  <option value="">— Sem projeto —</option>
+                  {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Tags (separadas por vírgula)</label>
+                <input
+                  value={form.tags}
+                  onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                  className={inputClass}
+                  placeholder="follow-up, cliente..."
+                />
+              </div>
             </div>
 
             {/* Subitens / Checklist */}

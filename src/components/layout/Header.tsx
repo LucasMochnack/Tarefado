@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Search, Plus, Sun, Moon, LogOut, User } from 'lucide-react'
+import { Search, Plus, Sun, Moon, LogOut, User, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { useNavigate } from 'react-router-dom'
 
 export function Header() {
-  const { darkMode, toggleDarkMode, logout, usuarioNome } = useStore()
+  const { darkMode, toggleDarkMode, logout, usuarioNome, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
   const [taskOpen, setTaskOpen] = useState(false)
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
+
+  const projetoAtivo = projetos.find(p => p.id === projetoSelecionado)
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +34,29 @@ export function Header() {
             />
           </div>
         </form>
+
+        {/* Chip do projeto filtrado */}
+        {projetoAtivo && (
+          <div
+            className="hidden sm:flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-lg text-sm font-medium border"
+            style={{
+              borderColor: projetoAtivo.cor + '55',
+              backgroundColor: projetoAtivo.cor + '1a',
+              color: projetoAtivo.cor,
+            }}
+            title={`Filtrando por: ${projetoAtivo.nome}`}
+          >
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: projetoAtivo.cor }} />
+            <span className="max-w-[180px] truncate">{projetoAtivo.nome}</span>
+            <button
+              onClick={() => setProjetoSelecionado(null)}
+              className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              title="Limpar filtro de projeto"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 ml-auto">
           <VoiceInputButton size="sm" />

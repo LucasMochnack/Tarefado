@@ -48,7 +48,9 @@ interface AppStore {
   autenticado: boolean
   usuarioNome: string
   usuarioEmail: string
+  projetoSelecionado: string | null
 
+  setProjetoSelecionado: (id: string | null) => void
   login: (email: string, senha: string) => boolean
   logout: () => void
   addUsuario: (usuario: Omit<Usuario, 'id'>) => void
@@ -100,6 +102,7 @@ export const useStore = create<AppStore>()(
       usuarios: USUARIOS_INICIAIS,
       tarefasRecorrentes: [],
       darkMode: true,
+      projetoSelecionado: null,
       autenticado: false,
       usuarioNome: '',
       usuarioEmail: '',
@@ -319,6 +322,8 @@ export const useStore = create<AppStore>()(
       },
 
       toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
+
+      setProjetoSelecionado: (id) => set({ projetoSelecionado: id }),
     }),
     {
       name: 'tarefado-storage',

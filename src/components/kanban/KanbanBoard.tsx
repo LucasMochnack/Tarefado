@@ -24,9 +24,10 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ filtros }: KanbanBoardProps) {
-  const { tarefas: todasTarefas, moveTarefa, reorderTarefas, updateTarefa } = useStore()
+  const { tarefas: todasTarefas, moveTarefa, reorderTarefas, updateTarefa, projetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
+    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

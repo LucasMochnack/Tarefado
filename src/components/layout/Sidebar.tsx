@@ -1,8 +1,11 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft
+  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/store/useStore'
+import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 
 const navItems = [
   { to: '/tarefas', icon: ListTodo, label: 'Tarefas' },
@@ -16,12 +19,31 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [projModalOpen, setProjModalOpen] = useState(false)
+
   const linkClass = (na: boolean) => cn(
     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
     na
       ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400'
       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
     collapsed && 'justify-center'
+  )
+
+  const selecionarProjeto = (id: string | null) => {
+    setProjetoSelecionado(id)
+    // Se estiver fora das telas de tarefas, leva para a lista filtrada
+    if (location.pathname.startsWith('/configuracoes')) navigate('/tarefas')
+  }
+
+  const projItemClass = (ativo: boolean) => cn(
+    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
+    ativo
+      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400'
+      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+    collapsed && 'justify-center px-0'
   )
 
   return (
@@ -53,7 +75,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
 
-      {/* Nav principal */}
+      {/* Nav principal + Projetos */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
         {navItems.map(item => {
           const Icon = item.icon
@@ -69,6 +91,68 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </NavLink>
           )
         })}
+
+        {/* ── Projetos ── */}
+        <div className="pt-4 mt-3 border-t border-slate-200 dark:border-slate-800">
+          {!collapsed && (
+            <div className="flex items-center justify-between px-3 mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Projetos</span>
+              <button
+                onClick={() => setProjModalOpen(true)}
+                title="Novo projeto"
+                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Todos os projetos */}
+          <button
+            onClick={() => selecionarProjeto(null)}
+            title={collapsed ? 'Todos os projetos' : undefined}
+            className={projItemClass(projetoSelecionado === null)}
+          >
+            <Layers size={16} className="flex-shrink-0" />
+            {!collapsed && <span className="flex-1 truncate">Todos os projetos</span>}
+          </button>
+
+          {/* Lista de projetos */}
+          {projetos.map(p => {
+            const ativo = projetoSelecionado === p.id
+            return (
+              <button
+                key={p.id}
+                onClick={() => selecionarProjeto(p.id)}
+                title={collapsed ? p.nome : undefined}
+                className={projItemClass(ativo)}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                  style={{ backgroundColor: p.cor }}
+                />
+                {!collapsed && <span className="flex-1 truncate">{p.nome}</span>}
+              </button>
+            )
+          })}
+
+          {/* Novo projeto (quando recolhido) */}
+          {collapsed && (
+            <button
+              onClick={() => setProjModalOpen(true)}
+              title="Novo projeto"
+              className="w-full flex justify-center py-2 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          )}
+
+          {projetos.length === 0 && !collapsed && (
+            <p className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500 italic flex items-center gap-1.5">
+              <Folder size={12} /> Nenhum projeto
+            </p>
+          )}
+        </div>
       </nav>
 
       {/* Configurações — discreto no rodapé */}
@@ -90,6 +174,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </button>
         )}
       </div>
+
+      <ProjectFormModal open={projModalOpen} onOpenChange={setProjModalOpen} />
     </aside>
   )
 }

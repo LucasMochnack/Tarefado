@@ -81,9 +81,10 @@ const QUADRANTES: {
 ]
 
 export function Prioridades() {
-  const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa } = useStore()
+  const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa, projetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
+    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState<Time | ''>('')

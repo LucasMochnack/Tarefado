@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
-  X, Trash2, Calendar, User, Tag, Clock,
+  X, Trash2, Calendar, User, Tag, Folder, Clock,
   MessageSquare, CheckSquare, Plus, Send, AlertCircle, Check, Pencil
 } from 'lucide-react'
 import { Tarefa, StatusTarefa, Time, NivelPrioridade } from '@/types'
@@ -315,7 +315,7 @@ function InlineSelect<T extends string>({
 }
 
 export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDrawerProps) {
-  const { updateTarefa, deleteTarefa, usuarios, tarefas } = useStore()
+  const { updateTarefa, deleteTarefa, usuarios, tarefas, projetos } = useStore()
   // Sempre busca a versão mais recente do store para evitar dados desatualizados
   const tarefa = tarefas.find(t => t.id === tarefaProp?.id) ?? tarefaProp
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -375,6 +375,11 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
   const responsavelOptions = [
     { value: '', label: 'Sem responsável' },
     ...(usuarios?.map((u: any) => ({ value: u.nome, label: u.nome })) ?? []),
+  ]
+
+  const projetoOptions = [
+    { value: '', label: '— Sem projeto —' },
+    ...projetos.map(p => ({ value: p.id, label: p.nome })),
   ]
 
   return (
@@ -473,6 +478,16 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
                       />
                     </span>
                   </div>
+                </MetaItem>
+                <MetaItem icon={Folder} label="Projeto">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <InlineSelect
+                      value={tarefa.projetoId ?? ''}
+                      options={projetoOptions}
+                      onSave={v => save({ projetoId: v })}
+                      renderValue={v => <span>{projetos.find(p => p.id === v)?.nome ?? '—'}</span>}
+                    />
+                  </span>
                 </MetaItem>
                 <MetaItem icon={Clock} label="Atualizado">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{formatRelative(tarefa.ultimaAtualizacao)}</span>

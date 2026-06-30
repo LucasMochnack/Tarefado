@@ -45,10 +45,11 @@ export function Tarefas() {
   const [searchParams] = useSearchParams()
   const {
     tarefas: todasTarefas, addTarefa, updateTarefa, deleteTarefa, usuarios, usuarioEmail,
-    tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente,
+    tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente, projetoSelecionado,
   } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
+    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
 
   const [aba, setAba] = useState<'tarefas' | 'recorrentes'>('tarefas')
   const [taskOpen, setTaskOpen] = useState(false)
@@ -100,7 +101,7 @@ export function Tarefas() {
       prioridade: 'media',
       prazo: addDaysISO(7),
       responsavel: '',
-      projetoId: '',
+      projetoId: projetoSelecionado || '',
       time: timeDefault,
       tags: [],
       checklist: [],
