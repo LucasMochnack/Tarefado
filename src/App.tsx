@@ -4,6 +4,7 @@ import { Login } from '@/pages/Login'
 import { Kanban } from '@/pages/Kanban'
 import { Prioridades } from '@/pages/Prioridades'
 import { Tarefas } from '@/pages/Tarefas'
+import { Resumo } from '@/pages/Resumo'
 import { Configuracoes } from '@/pages/Configuracoes'
 import { useStore } from '@/store/useStore'
 
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/prioridades" element={<Prioridades />} />
           <Route path="/tarefas" element={<Tarefas />} />
+          <Route path="/resumo" element={<Resumo />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* Rotas antigas redirecionam para o Kanban */}
           <Route path="*" element={<Navigate to="/kanban" replace />} />

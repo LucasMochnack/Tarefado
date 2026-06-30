@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil
+  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/tarefas', icon: ListTodo, label: 'Tarefas' },
   { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/prioridades', icon: Target, label: 'Prioridades' },
+  { to: '/resumo', icon: CalendarRange, label: 'Resumo' },
 ]
 
 interface SidebarProps {
