@@ -220,7 +220,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Prazo">
+              <Field label="Data">
                 <input
                   type="date"
                   value={form.prazo}

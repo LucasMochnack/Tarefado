@@ -256,8 +256,8 @@ function InlineDate({
       type="date"
       defaultValue={value}
       autoFocus
-      onBlur={e => { setEditing(false); if (e.target.value !== value) { onSave(e.target.value); toast.success('Prazo atualizado!') } }}
-      onChange={e => { if (e.target.value) { onSave(e.target.value); setEditing(false); toast.success('Prazo atualizado!') } }}
+      onBlur={e => { setEditing(false); if (e.target.value !== value) { onSave(e.target.value); toast.success('Data atualizada!') } }}
+      onChange={e => { if (e.target.value) { onSave(e.target.value); setEditing(false); toast.success('Data atualizada!') } }}
       className="rounded-lg border border-indigo-400 bg-white dark:bg-slate-800 px-2 py-0.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
     />
   ) : (
@@ -266,7 +266,7 @@ function InlineDate({
       className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded px-1 -mx-1 transition-colors group inline-flex items-center gap-1"
       title="Clique para editar"
     >
-      {value ? formatDate(value) : <span className="text-slate-400 italic">Sem prazo</span>}
+      {value ? formatDate(value) : <span className="text-slate-400 italic">Sem data</span>}
       <Pencil size={10} className="opacity-0 group-hover:opacity-40 flex-shrink-0" />
     </span>
   )
@@ -461,7 +461,7 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
 
               {/* Meta */}
               <div className="grid grid-cols-2 gap-3">
-                <MetaItem icon={Calendar} label="Prazo">
+                <MetaItem icon={Calendar} label="Data">
                   <span className={cn('text-sm font-medium', overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300')}>
                     {tarefa.prazo && <span className="mr-1 text-xs text-slate-400">{prazoLabel(tarefa.prazo, tarefa.status)} ·</span>}
                     <InlineDate value={tarefa.prazo} onSave={v => save({ prazo: v })} />
