@@ -84,7 +84,10 @@ function gerarId(): string {
 function recalcularTarefa(tarefa: Tarefa, projetos: Projeto[]): Tarefa {
   const projeto = projetos.find(p => p.id === tarefa.projetoId)
   const { score, nivel, motivo } = calcularScore(tarefa, projeto)
-  return { ...tarefa, scorePrioridade: score, nivelPrioridade: nivel, motivoPrioridade: motivo }
+  // A criticidade (nível) segue a escolha manual do usuário (prioridade);
+  // o Score continua sendo o indicador de urgência automático.
+  const nivelFinal = tarefa.prioridade ?? nivel
+  return { ...tarefa, scorePrioridade: score, nivelPrioridade: nivelFinal, motivoPrioridade: motivo }
 }
 
 function atualizarProgressos(tarefas: Tarefa[], projetos: Projeto[]): Projeto[] {
