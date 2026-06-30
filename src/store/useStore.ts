@@ -62,6 +62,7 @@ interface AppStore {
   deleteTarefa: (id: string) => void
   moveTarefa: (id: string, novoStatus: StatusTarefa) => void
   reorderTarefas: (activeId: string, overId: string) => void
+  reordenarManual: (orderedIds: string[]) => void
   recalcularPrioridades: () => void
 
   addTarefaRecorrente: (dados: Omit<TarefaRecorrente, 'id' | 'criadoEm' | 'ultimaCriacao'>) => void
@@ -177,9 +178,11 @@ export const useStore = create<AppStore>()(
 
       updateTarefa: (id, data) => {
         const { projetos } = get()
-        // Ao concluir, remove automaticamente da Matriz de Eisenhower
-        if (data.status === 'concluido' && !('quadranteEisenhower' in data)) {
-          data = { ...data, quadranteEisenhower: undefined }
+        // Ao concluir: sai da Matriz de Eisenhower e do ranking manual
+        // (reabrir traz a tarefa de volta como não-ranqueada, no fim — sem colidir índices)
+        if (data.status === 'concluido') {
+          if (!('quadranteEisenhower' in data)) data = { ...data, quadranteEisenhower: undefined }
+          data = { ...data, ordemManual: undefined }
         }
         set(state => {
           const novasTarefas = state.tarefas.map(t => {
@@ -217,6 +220,16 @@ export const useStore = create<AppStore>()(
           if (oldIndex === -1 || newIndex === -1) return state
           return { tarefas: arrayMove(state.tarefas, oldIndex, newIndex) }
         })
+      },
+
+      // Ranking manual: grava a posição (ordemManual) de cada tarefa na lista ordenada
+      reordenarManual: (orderedIds) => {
+        const posicao = new Map(orderedIds.map((id, i) => [id, i]))
+        set(state => ({
+          tarefas: state.tarefas.map(t =>
+            posicao.has(t.id) ? { ...t, ordemManual: posicao.get(t.id) } : t
+          ),
+        }))
       },
 
       addTarefaRecorrente: (dados) => {

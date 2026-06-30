@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ListTodo, Plus, X, Trash2, Edit2, Check, Repeat, Clock, ToggleLeft, ToggleRight, User } from 'lucide-react'
+import { ListTodo, Plus, X, Trash2, Edit2, Check, Repeat, Clock, ToggleLeft, ToggleRight, User, GripVertical, ArrowDownWideNarrow, Layers } from 'lucide-react'
+import {
+  DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useStore } from '@/store/useStore'
 import { Tarefa, StatusTarefa, Time, TarefaRecorrente } from '@/types'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
@@ -41,11 +48,123 @@ const FILTROS_STATUS: { value: StatusTarefa | 'todas'; label: string }[] = [
   { value: 'concluido', label: 'Concluídas' },
 ]
 
+interface DndProps {
+  setNodeRef: (el: HTMLElement | null) => void
+  style: React.CSSProperties
+  attributes: Record<string, unknown>
+  listeners: Record<string, unknown> | undefined
+  isDragging: boolean
+}
+
+interface TaskRowProps {
+  t: Tarefa
+  rank: number | null
+  onToggle: () => void
+  onOpen: () => void
+  onEdit: () => void
+  onDelete: () => void
+  dnd?: DndProps
+}
+
+function TaskRow({ t, rank, onToggle, onOpen, onEdit, onDelete, dnd }: TaskRowProps) {
+  const overdue = isOverdue(t.prazo) && t.status !== 'concluido'
+  const done = t.status === 'concluido'
+  return (
+    <div
+      ref={dnd?.setNodeRef}
+      style={dnd?.style}
+      className={cn(
+        'bg-white dark:bg-slate-900 rounded-xl border p-3 flex items-center gap-3 group hover:shadow-sm transition-all',
+        overdue ? 'border-red-200 dark:border-red-900/40' : 'border-slate-200 dark:border-slate-700',
+        dnd?.isDragging && 'opacity-70 shadow-lg ring-2 ring-indigo-400/40'
+      )}
+    >
+      {/* Arrastar + posição (modo manual) */}
+      {dnd && (
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            {...dnd.attributes}
+            {...dnd.listeners}
+            className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 touch-none"
+            title="Arraste para reordenar"
+            aria-label="Arraste para reordenar"
+          >
+            <GripVertical size={15} />
+          </button>
+          {rank != null && (
+            <span className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+              {rank}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Concluir */}
+      <button
+        onClick={onToggle}
+        className={cn(
+          'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+          done
+            ? 'bg-emerald-500 border-emerald-500 text-white'
+            : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+        )}
+        title={done ? 'Reabrir' : 'Concluir'}
+      >
+        {done && <Check size={12} />}
+      </button>
+
+      {/* Conteúdo */}
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpen}>
+        <p className={cn(
+          'text-sm font-medium truncate transition-colors',
+          done ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
+        )}>
+          {t.titulo}
+        </p>
+        <div className="flex items-center gap-1.5 mt-1">
+          <PriorityBadge nivel={t.nivelPrioridade} size="xs" showIcon={false} />
+          <StatusBadge status={t.status} size="xs" />
+          <span className={cn('text-[11px]', overdue ? 'text-red-500' : 'text-slate-400')}>
+            {prazoLabel(t.prazo, t.status)}
+          </span>
+        </div>
+      </div>
+
+      {/* Time + Responsável */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <TimeBadge time={t.time} />
+        <UserAvatarPicker tarefaId={t.id} responsavel={t.responsavel} size="sm" />
+      </div>
+
+      {/* Ações */}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button onClick={onEdit} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors">
+          <Edit2 size={13} />
+        </button>
+        <button onClick={onDelete} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-600 transition-colors">
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SortableTaskRow(props: TaskRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.t.id })
+  return (
+    <TaskRow
+      {...props}
+      dnd={{ setNodeRef, style: { transform: CSS.Transform.toString(transform), transition }, attributes, listeners, isDragging }}
+    />
+  )
+}
+
 export function Tarefas() {
   const [searchParams] = useSearchParams()
   const {
     tarefas: todasTarefas, addTarefa, updateTarefa, deleteTarefa, usuarios, usuarioEmail,
     tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente, projetoSelecionado,
+    reordenarManual,
   } = useStore()
   const timesPermitidos = usePermissoes()
   const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
@@ -59,6 +178,9 @@ export function Tarefas() {
   const [busca, setBusca] = useState(searchParams.get('busca') || '')
   const [statusFiltro, setStatusFiltro] = useState<StatusTarefa | 'todas'>('todas')
   const [quickTitle, setQuickTitle] = useState('')
+  const [ordenacao, setOrdenacao] = useState<'auto' | 'manual'>('auto')
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   // Recorrentes
   const [recModalOpen, setRecModalOpen] = useState(false)
@@ -77,19 +199,47 @@ export function Tarefas() {
   const usuarioLogado = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())
   const timeDefault = (usuarioLogado?.cargo ? CARGO_TIME_MAP[usuarioLogado.cargo] : 'geral') as Time
 
+  const matchBusca = (t: Tarefa) => {
+    if (!busca) return true
+    const q = busca.toLowerCase()
+    return t.titulo.toLowerCase().includes(q) || t.descricao.toLowerCase().includes(q)
+  }
+
+  // Modo automático: respeita filtro de status, concluídas no fim, ordenado por score
   const filtered = tarefas
     .filter(t => statusFiltro === 'todas' || t.status === statusFiltro)
-    .filter(t => {
-      if (!busca) return true
-      const q = busca.toLowerCase()
-      return t.titulo.toLowerCase().includes(q) || t.descricao.toLowerCase().includes(q)
-    })
+    .filter(matchBusca)
     .sort((a, b) => {
-      // Concluídas no fim, depois por score
       if (a.status === 'concluido' && b.status !== 'concluido') return 1
       if (b.status === 'concluido' && a.status !== 'concluido') return -1
       return b.scorePrioridade - a.scorePrioridade
     })
+
+  // Ranking manual é por projeto: só faz sentido com um projeto selecionado.
+  const manualBloqueado = ordenacao === 'manual' && !projetoSelecionado
+
+  // Modo manual: TODAS as tarefas ativas do projeto (sem busca/status), ordenadas pela posição manual.
+  // Reindexa sempre o conjunto completo do projeto para manter índices contíguos e estáveis.
+  const manualList = tarefas
+    .filter(t => t.status !== 'concluido')
+    .sort((a, b) => {
+      const oa = a.ordemManual ?? Number.MAX_SAFE_INTEGER
+      const ob = b.ordemManual ?? Number.MAX_SAFE_INTEGER
+      if (oa !== ob) return oa - ob
+      return b.scorePrioridade - a.scorePrioridade
+    })
+
+  const displayed = ordenacao === 'manual' ? manualList : filtered
+
+  const handleManualDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id || !projetoSelecionado) return
+    const ids = manualList.map(t => t.id)
+    const oldIndex = ids.indexOf(active.id as string)
+    const newIndex = ids.indexOf(over.id as string)
+    if (oldIndex === -1 || newIndex === -1) return
+    reordenarManual(arrayMove(ids, oldIndex, newIndex))
+  }
 
   const handleQuickAdd = () => {
     const titulo = quickTitle.trim()
@@ -133,7 +283,7 @@ export function Tarefas() {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {aba === 'tarefas'
-              ? `${filtered.length} tarefa${filtered.length !== 1 ? 's' : ''}`
+              ? `${displayed.length} tarefa${displayed.length !== 1 ? 's' : ''}${ordenacao === 'manual' ? ' · ordem manual' : ''}`
               : `${tarefasRecorrentes.length} recorrente${tarefasRecorrentes.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -206,101 +356,121 @@ export function Tarefas() {
 
       {/* Busca + filtro de status */}
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          placeholder="Buscar…"
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-48"
-        />
-        {busca && (
-          <button onClick={() => setBusca('')} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1">
-            <X size={12} /> Limpar
-          </button>
+        {/* Busca — só no modo automático (no manual a ordem cobre o projeto inteiro) */}
+        {ordenacao === 'auto' && (
+          <>
+            <input
+              type="text"
+              placeholder="Buscar…"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-48"
+            />
+            {busca && (
+              <button onClick={() => setBusca('')} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1">
+                <X size={12} /> Limpar
+              </button>
+            )}
+          </>
         )}
-        <div className="flex items-center gap-1.5 flex-wrap ml-auto">
-          {FILTROS_STATUS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFiltro(f.value)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                statusFiltro === f.value
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+
+        {/* Toggle de ordenação */}
+        <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden ml-auto">
+          <button
+            onClick={() => setOrdenacao('auto')}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors',
+              ordenacao === 'auto' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600'
+            )}
+            title="Ordenar por prioridade automática"
+          >
+            <ArrowDownWideNarrow size={13} /> Prioridade
+          </button>
+          <button
+            onClick={() => setOrdenacao('manual')}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors',
+              ordenacao === 'manual' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600'
+            )}
+            title="Ordenar manualmente (arrastar)"
+          >
+            <GripVertical size={13} /> Manual
+          </button>
         </div>
+
+        {/* Filtros de status — só no modo automático */}
+        {ordenacao === 'auto' && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {FILTROS_STATUS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFiltro(f.value)}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  statusFiltro === f.value
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Dica do modo manual */}
+      {ordenacao === 'manual' && !manualBloqueado && (
+        <p className="-mt-2 text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+          <GripVertical size={12} /> Arraste pelas alças para definir a ordem de importância — salva por projeto. Mostrando apenas tarefas ativas.
+        </p>
+      )}
+
       {/* Lista */}
-      {filtered.length === 0 ? (
+      {manualBloqueado ? (
+        <div className="text-center py-16">
+          <Layers size={40} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+          <p className="text-slate-500 dark:text-slate-400">Selecione um projeto na lateral para ordenar manualmente</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">O ranking de importância é salvo separadamente para cada projeto.</p>
+        </div>
+      ) : displayed.length === 0 ? (
         <div className="text-center py-16">
           <ListTodo size={40} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">Nenhuma tarefa por aqui</p>
+          <p className="text-slate-500 dark:text-slate-400">
+            {ordenacao === 'manual' ? 'Nenhuma tarefa ativa para ordenar' : 'Nenhuma tarefa por aqui'}
+          </p>
         </div>
+      ) : ordenacao === 'manual' ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleManualDragEnd}>
+          <SortableContext items={displayed.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {displayed.map((t, i) => (
+                <SortableTaskRow
+                  key={t.id}
+                  t={t}
+                  rank={i + 1}
+                  onToggle={() => toggleConcluir(t)}
+                  onOpen={() => setSelectedTarefa(t)}
+                  onEdit={() => setEditTarefa(t)}
+                  onDelete={() => setDeleteTarget(t)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         <div className="space-y-2">
-          {filtered.map(t => {
-            const overdue = isOverdue(t.prazo) && t.status !== 'concluido'
-            const done = t.status === 'concluido'
-            return (
-              <div key={t.id} className={cn(
-                'bg-white dark:bg-slate-900 rounded-xl border p-3 flex items-center gap-3 group hover:shadow-sm transition-all',
-                overdue ? 'border-red-200 dark:border-red-900/40' : 'border-slate-200 dark:border-slate-700'
-              )}>
-                {/* Concluir */}
-                <button
-                  onClick={() => toggleConcluir(t)}
-                  className={cn(
-                    'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                    done
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
-                  )}
-                  title={done ? 'Reabrir' : 'Concluir'}
-                >
-                  {done && <Check size={12} />}
-                </button>
-
-                {/* Conteúdo */}
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedTarefa(t)}>
-                  <p className={cn(
-                    'text-sm font-medium truncate transition-colors',
-                    done ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
-                  )}>
-                    {t.titulo}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <PriorityBadge nivel={t.nivelPrioridade} size="xs" showIcon={false} />
-                    <StatusBadge status={t.status} size="xs" />
-                    <span className={cn('text-[11px]', overdue ? 'text-red-500' : 'text-slate-400')}>
-                      {prazoLabel(t.prazo, t.status)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Time + Responsável */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <TimeBadge time={t.time} />
-                  <UserAvatarPicker tarefaId={t.id} responsavel={t.responsavel} size="sm" />
-                </div>
-
-                {/* Ações */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                  <button onClick={() => setEditTarefa(t)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors">
-                    <Edit2 size={13} />
-                  </button>
-                  <button onClick={() => setDeleteTarget(t)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-600 transition-colors">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+          {displayed.map(t => (
+            <TaskRow
+              key={t.id}
+              t={t}
+              rank={null}
+              onToggle={() => toggleConcluir(t)}
+              onOpen={() => setSelectedTarefa(t)}
+              onEdit={() => setEditTarefa(t)}
+              onDelete={() => setDeleteTarget(t)}
+            />
+          ))}
         </div>
       )}
 

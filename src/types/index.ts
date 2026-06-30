@@ -46,6 +46,7 @@ export interface Tarefa {
   dataInicio?: string
   bloqueadaPor?: string
   quadranteEisenhower?: QuadranteEisenhower
+  ordemManual?: number   // posição no ranking manual (por projeto)
   scorePrioridade: number
   nivelPrioridade: NivelPrioridade
   motivoPrioridade: string
