@@ -64,6 +64,7 @@ export interface Projeto {
   time: Time
   criadoEm: string
   atualizadoEm: string
+  ocultarEmTodos?: boolean   // tarefas não aparecem na visão "Todos os projetos"
 }
 
 export interface TarefaRecorrente {

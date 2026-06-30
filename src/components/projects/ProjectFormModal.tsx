@@ -39,6 +39,7 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
     status: 'ativo' as StatusProjeto,
     cor: '#3b82f6',
     time: 'b2c' as Time,
+    ocultarEmTodos: false,
   })
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
         status: projeto.status,
         cor: projeto.cor,
         time: projeto.time,
+        ocultarEmTodos: !!projeto.ocultarEmTodos,
       })
     } else {
       setForm({
@@ -61,6 +63,7 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
         status: 'ativo',
         cor: '#3b82f6',
         time: 'b2c',
+        ocultarEmTodos: false,
       })
     }
   }, [projeto, open])
@@ -156,6 +159,21 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
                 ))}
               </div>
             </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={form.ocultarEmTodos}
+                onChange={e => setForm(f => ({ ...f, ocultarEmTodos: e.target.checked }))}
+                className="accent-indigo-600 mt-0.5 w-4 h-4 flex-shrink-0"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                Projeto privado
+                <span className="block text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  As tarefas não aparecem em "Todos os projetos" — só ao selecionar este projeto.
+                </span>
+              </span>
+            </label>
 
             <div className="flex items-center gap-3 pt-2">
               {isEdit && (

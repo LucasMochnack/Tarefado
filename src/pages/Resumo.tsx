@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore'
 import { Tarefa, StatusTarefa } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import { cn } from '@/lib/utils'
 
 const DIAS_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -25,8 +26,8 @@ export function Resumo() {
   const [weekOffset, setWeekOffset] = useState(0)
   const [selected, setSelected] = useState<Tarefa | null>(null)
 
-  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
-    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
+  const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
 
   const projMap = (id: string) => projetos.find(p => p.id === id) ?? SEM_PROJETO
 

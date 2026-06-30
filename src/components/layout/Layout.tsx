@@ -9,6 +9,11 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const darkMode = useStore(s => s.darkMode)
   const processarRecorrentes = useStore(s => s.processarRecorrentes)
+  const garantirProjetosPadrao = useStore(s => s.garantirProjetosPadrao)
+
+  useEffect(() => {
+    garantirProjetosPadrao()
+  }, [garantirProjetosPadrao])
 
   useEffect(() => {
     // Processa ao abrir o app e sempre que a aba volta ao foco

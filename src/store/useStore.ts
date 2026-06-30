@@ -4,7 +4,7 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana } from '@/types'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { calcularScore, calcularProgressoProjeto } from '@/utils/priority'
-import { todayISO } from '@/utils/dates'
+import { todayISO, addDaysISO } from '@/utils/dates'
 
 export interface Usuario {
   id: string
@@ -39,6 +39,22 @@ const USUARIOS_INICIAIS: Usuario[] = [
   },
 ]
 
+// Projeto "Pessoais" — sempre existe; suas tarefas ficam ocultas em "Todos os projetos"
+const PROJETO_PESSOAIS: Projeto = {
+  id: 'proj-pessoais',
+  nome: 'Pessoais',
+  descricao: 'Tarefas pessoais — ocultas na visão "Todos os projetos".',
+  quadranteEisenhower: 'importante-nao-urgente',
+  prazoFinal: addDaysISO(365),
+  status: 'ativo',
+  progresso: 0,
+  cor: '#14b8a6',
+  time: 'geral',
+  criadoEm: todayISO(),
+  atualizadoEm: todayISO(),
+  ocultarEmTodos: true,
+}
+
 interface AppStore {
   tarefas: Tarefa[]
   projetos: Projeto[]
@@ -50,6 +66,7 @@ interface AppStore {
   usuarioEmail: string
   projetoSelecionado: string | null
 
+  garantirProjetosPadrao: () => void
   setProjetoSelecionado: (id: string | null) => void
   login: (email: string, senha: string) => boolean
   logout: () => void
@@ -340,6 +357,13 @@ export const useStore = create<AppStore>()(
       toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
 
       setProjetoSelecionado: (id) => set({ projetoSelecionado: id }),
+
+      // Garante que o projeto "Pessoais" exista (mesmo em localStorage antigo)
+      garantirProjetosPadrao: () => {
+        set(state => state.projetos.some(p => p.id === PROJETO_PESSOAIS.id)
+          ? state
+          : { projetos: [...state.projetos, PROJETO_PESSOAIS] })
+      },
     }),
     {
       name: 'tarefado-storage',

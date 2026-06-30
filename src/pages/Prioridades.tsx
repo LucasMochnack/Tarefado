@@ -11,6 +11,7 @@ import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
 import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import toast from 'react-hot-toast'
 
 const QUADRANTES: {
@@ -73,8 +74,8 @@ const QUADRANTES: {
 export function Prioridades() {
   const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
-    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
+  const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [nivelFilter, setNivelFilter] = useState<NivelPrioridade | ''>('')

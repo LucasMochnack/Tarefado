@@ -22,6 +22,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { isOverdue, prazoLabel, addDaysISO } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import toast from 'react-hot-toast'
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -162,13 +163,13 @@ function SortableTaskRow(props: TaskRowProps) {
 export function Tarefas() {
   const [searchParams] = useSearchParams()
   const {
-    tarefas: todasTarefas, addTarefa, updateTarefa, deleteTarefa, usuarios, usuarioEmail,
+    tarefas: todasTarefas, projetos, addTarefa, updateTarefa, deleteTarefa, usuarios, usuarioEmail,
     tarefasRecorrentes, deleteTarefaRecorrente, updateTarefaRecorrente, projetoSelecionado,
     reordenarManual,
   } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
-    .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
+  const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
 
   const [aba, setAba] = useState<'tarefas' | 'recorrentes'>('tarefas')
   const [taskOpen, setTaskOpen] = useState(false)
