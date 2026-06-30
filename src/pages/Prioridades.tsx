@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Target, RefreshCw, Filter, X, GripVertical, Zap, Clock, Trash2, Calendar, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
-import { Tarefa, Time, NivelPrioridade, QuadranteEisenhower } from '@/types'
+import { Tarefa, NivelPrioridade, QuadranteEisenhower } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
@@ -12,16 +12,6 @@ import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
 import toast from 'react-hot-toast'
-
-const TODOS_TIMES: { value: Time; label: string }[] = [
-  { value: 'alta-renda',  label: 'Alta Renda' },
-  { value: 'varejo',      label: 'Varejo' },
-  { value: 'on-demand',   label: 'On Demand' },
-  { value: 'b2c',         label: 'B2C' },
-  { value: 'campinas',    label: 'Campinas' },
-  { value: 'produtos',    label: 'Produtos' },
-  { value: 'performance', label: 'Performance' },
-]
 
 const QUADRANTES: {
   id: QuadranteEisenhower
@@ -81,13 +71,12 @@ const QUADRANTES: {
 ]
 
 export function Prioridades() {
-  const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa, projetoSelecionado } = useStore()
+  const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
   const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
     .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [taskFormOpen, setTaskFormOpen] = useState(false)
-  const [timeFilter, setTimeFilter] = useState<Time | ''>('')
   const [nivelFilter, setNivelFilter] = useState<NivelPrioridade | ''>('')
   const [showFilters, setShowFilters] = useState(false)
   const [dragOverQuadrante, setDragOverQuadrante] = useState<QuadranteEisenhower | 'backlog' | null>(null)
@@ -95,11 +84,10 @@ export function Prioridades() {
 
   const activeTarefas = tarefas
     .filter(t => t.status !== 'concluido')
-    .filter(t => !timeFilter || t.time === timeFilter)
     .filter(t => !nivelFilter || t.nivelPrioridade === nivelFilter)
 
   const backlog = activeTarefas.filter(t => !t.quadranteEisenhower)
-  const hasFilters = !!(timeFilter || nivelFilter)
+  const hasFilters = !!nivelFilter
 
   const tarefasNoQuadrante = (q: QuadranteEisenhower) =>
     activeTarefas.filter(t => t.quadranteEisenhower === q)
@@ -155,7 +143,7 @@ export function Prioridades() {
             <Filter size={13} /> Filtros {hasFilters && '(ativo)'}
           </button>
           {hasFilters && (
-            <button onClick={() => { setTimeFilter(''); setNivelFilter('') }} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+            <button onClick={() => setNivelFilter('')} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
               <X size={12} /> Limpar
             </button>
           )}
@@ -168,31 +156,35 @@ export function Prioridades() {
         </div>
       </div>
 
-      {/* Filtro de time — sempre visível */}
+      {/* Filtro de projeto — sempre visível */}
       <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
         <button
-          onClick={() => setTimeFilter('')}
+          onClick={() => setProjetoSelecionado(null)}
           className={cn(
             'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-            timeFilter === ''
+            projetoSelecionado === null
               ? 'bg-indigo-600 text-white border-indigo-600'
               : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
           )}
         >
-          Todos
+          Todos os projetos
         </button>
-        {TODOS_TIMES.map(t => (
+        {projetos.map(p => (
           <button
-            key={t.value}
-            onClick={() => setTimeFilter(prev => prev === t.value ? '' : t.value)}
+            key={p.id}
+            onClick={() => setProjetoSelecionado(projetoSelecionado === p.id ? null : p.id)}
             className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              timeFilter === t.value
+              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors inline-flex items-center gap-1.5',
+              projetoSelecionado === p.id
                 ? 'bg-indigo-600 text-white border-indigo-600'
                 : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600'
             )}
           >
-            {t.label}
+            <span
+              className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/20"
+              style={{ backgroundColor: p.cor }}
+            />
+            {p.nome}
           </button>
         ))}
         {nivelFilter && (
