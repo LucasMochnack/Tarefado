@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers
+  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
+import { Projeto } from '@/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 
 const navItems = [
@@ -23,6 +24,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const [projModalOpen, setProjModalOpen] = useState(false)
+  const [projetoEdit, setProjetoEdit] = useState<Projeto | undefined>(undefined)
+
+  const abrirNovoProjeto = () => { setProjetoEdit(undefined); setProjModalOpen(true) }
+  const abrirEditarProjeto = (e: React.MouseEvent, p: Projeto) => {
+    e.stopPropagation()
+    setProjetoEdit(p)
+    setProjModalOpen(true)
+  }
 
   const linkClass = (na: boolean) => cn(
     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
@@ -98,7 +107,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="flex items-center justify-between px-3 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Projetos</span>
               <button
-                onClick={() => setProjModalOpen(true)}
+                onClick={abrirNovoProjeto}
                 title="Novo projeto"
                 className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
@@ -120,26 +129,57 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {/* Lista de projetos */}
           {projetos.map(p => {
             const ativo = projetoSelecionado === p.id
+            if (collapsed) {
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => selecionarProjeto(p.id)}
+                  title={p.nome}
+                  className={projItemClass(ativo)}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                    style={{ backgroundColor: p.cor }}
+                  />
+                </button>
+              )
+            }
             return (
-              <button
+              <div
                 key={p.id}
-                onClick={() => selecionarProjeto(p.id)}
-                title={collapsed ? p.nome : undefined}
-                className={projItemClass(ativo)}
+                className={cn(
+                  'group flex items-center rounded-lg transition-colors',
+                  ativo ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                )}
               >
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-                  style={{ backgroundColor: p.cor }}
-                />
-                {!collapsed && <span className="flex-1 truncate">{p.nome}</span>}
-              </button>
+                <button
+                  onClick={() => selecionarProjeto(p.id)}
+                  className={cn(
+                    'flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2 text-sm font-medium text-left transition-colors',
+                    ativo ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+                  )}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                    style={{ backgroundColor: p.cor }}
+                  />
+                  <span className="flex-1 truncate">{p.nome}</span>
+                </button>
+                <button
+                  onClick={e => abrirEditarProjeto(e, p)}
+                  title="Editar projeto (nome, cor…)"
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 mr-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 transition-all flex-shrink-0"
+                >
+                  <Pencil size={13} />
+                </button>
+              </div>
             )
           })}
 
           {/* Novo projeto (quando recolhido) */}
           {collapsed && (
             <button
-              onClick={() => setProjModalOpen(true)}
+              onClick={abrirNovoProjeto}
               title="Novo projeto"
               className="w-full flex justify-center py-2 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
@@ -175,7 +215,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
-      <ProjectFormModal open={projModalOpen} onOpenChange={setProjModalOpen} />
+      <ProjectFormModal
+        key={projetoEdit?.id ?? 'novo'}
+        open={projModalOpen}
+        onOpenChange={setProjModalOpen}
+        projeto={projetoEdit}
+      />
     </aside>
   )
 }
