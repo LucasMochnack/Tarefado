@@ -21,11 +21,14 @@ export function KanbanColumn({ id, label, color, tarefas, onCardClick }: KanbanC
 
   return (
     <>
-      <div className={cn(
-        'flex flex-col rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 transition-all duration-200 flex-shrink-0',
-        'w-72 xl:w-80',
-        isOver && 'ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900 bg-indigo-50/50 dark:bg-indigo-950/20'
-      )}>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'flex flex-col rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 transition-all duration-200 flex-shrink-0',
+          'w-72 xl:w-80',
+          isOver && 'ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900 bg-indigo-50/60 dark:bg-indigo-950/30'
+        )}
+      >
         {/* Column header */}
         <div className="flex items-center justify-between p-3 flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -45,10 +48,7 @@ export function KanbanColumn({ id, label, color, tarefas, onCardClick }: KanbanC
         </div>
 
         {/* Cards */}
-        <div
-          ref={setNodeRef}
-          className="flex-1 overflow-y-auto p-2 space-y-2 min-h-32"
-        >
+        <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-32">
           <SortableContext items={tarefas.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tarefas.map(tarefa => (
               <KanbanCard key={tarefa.id} tarefa={tarefa} onClick={onCardClick} />
