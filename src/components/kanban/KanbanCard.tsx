@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Tarefa } from '@/types'
+import { useStore } from '@/store/useStore'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, prazoLabel } from '@/utils/dates'
@@ -27,8 +28,11 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
+  const projeto = useStore(s => s.projetos.find(p => p.id === tarefa.projetoId))
   const overdue = isOverdue(tarefa.prazo) && tarefa.status !== 'concluido'
   const checkDone = tarefa.checklist.filter(c => c.concluido).length
+  // Cor da barra: do projeto (mais relevante) ou, sem projeto, do time
+  const accent = projeto?.cor ?? TEAM_ACCENT[tarefa.time] ?? TEAM_ACCENT.geral
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging } = useSortable({ id: tarefa.id })
 
@@ -54,10 +58,10 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
         (isDragging || isSortableDragging) && 'opacity-50 shadow-xl rotate-1 scale-105'
       )}
     >
-      {/* Accent bar by team */}
+      {/* Barra de acento — cor do projeto (ou do time, se sem projeto) */}
       <span
         className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
-        style={{ backgroundColor: TEAM_ACCENT[tarefa.time] ?? TEAM_ACCENT.geral }}
+        style={{ backgroundColor: accent }}
       />
 
       {/* Priority + avatar */}
@@ -78,6 +82,14 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
       <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug mb-2 line-clamp-2 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
         {tarefa.titulo}
       </h3>
+
+      {/* Projeto */}
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+          {projeto ? projeto.nome : 'Sem projeto'}
+        </span>
+      </div>
 
       {/* Tags */}
       {tarefa.tags.length > 0 && (
