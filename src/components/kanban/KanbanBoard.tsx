@@ -19,12 +19,15 @@ const COLUNAS: { id: StatusTarefa; label: string; color: string }[] = [
   { id: 'concluido', label: 'Concluído', color: 'bg-emerald-500' },
 ]
 
+// Ordem de criticidade (menor = mais crítico, vai pro topo)
+const CRIT_RANK: Record<string, number> = { critica: 0, alta: 1, media: 2, baixa: 3 }
+
 interface KanbanBoardProps {
   filtros: FiltrosTarefa
 }
 
 export function KanbanBoard({ filtros }: KanbanBoardProps) {
-  const { tarefas: todasTarefas, moveTarefa, reorderTarefas, updateTarefa, projetoSelecionado } = useStore()
+  const { tarefas: todasTarefas, moveTarefa, updateTarefa, projetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
   const tarefas = (timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas)
     .filter(t => !projetoSelecionado || t.projetoId === projetoSelecionado)
@@ -110,11 +113,9 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
     const targetTarefa = tarefas.find(t => t.id === overId)
     if (!targetTarefa) return
 
-    if (sourceTarefa.status === targetTarefa.status) {
-      // Mesma coluna → reordenar
-      reorderTarefas(tarefaId, overId)
-    } else {
-      // Coluna diferente → mover (já foi movido no dragOver, confirma com toast)
+    // Coluna diferente → mover (já foi movido no dragOver, confirma com toast).
+    // Mesma coluna não reordena: a ordem é automática por criticidade.
+    if (sourceTarefa.status !== targetTarefa.status) {
       toast.success(`Movida para "${COLUNAS.find(c => c.id === targetTarefa.status)?.label}"`)
     }
   }
@@ -130,7 +131,15 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
       >
         <div className="flex gap-4 h-full min-h-0">
           {COLUNAS.map(coluna => {
-            const tarefasColuna = filteredTarefas.filter(t => t.status === coluna.id)
+            const tarefasColuna = filteredTarefas
+              .filter(t => t.status === coluna.id)
+              // Ordena por criticidade (mais crítica no topo), desempata pelo score
+              .sort((a, b) => {
+                const ra = CRIT_RANK[a.nivelPrioridade] ?? 9
+                const rb = CRIT_RANK[b.nivelPrioridade] ?? 9
+                if (ra !== rb) return ra - rb
+                return b.scorePrioridade - a.scorePrioridade
+              })
             return (
               <KanbanColumn
                 key={coluna.id}
