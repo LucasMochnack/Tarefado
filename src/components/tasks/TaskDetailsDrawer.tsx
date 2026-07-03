@@ -37,6 +37,7 @@ const STATUS_LABELS: Record<StatusTarefa, string> = {
   'a-fazer': 'A Fazer',
   'em-andamento': 'Em Andamento',
   'aguardando': 'Aguardando',
+  'em-testes': 'Em Testes',
   'concluido': 'Concluído',
 }
 
@@ -395,7 +396,7 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <InlineSelect
                     value={tarefa.status}
-                    options={(['a-fazer', 'em-andamento', 'aguardando', 'concluido'] as StatusTarefa[]).map(s => ({ value: s, label: STATUS_LABELS[s] }))}
+                    options={(['a-fazer', 'em-andamento', 'aguardando', 'em-testes', 'concluido'] as StatusTarefa[]).map(s => ({ value: s, label: STATUS_LABELS[s] }))}
                     onSave={v => save({ status: v })}
                     renderValue={v => <StatusBadge status={v} />}
                   />

@@ -15,6 +15,7 @@ const STATUS_DOT: Record<StatusTarefa, string> = {
   'a-fazer': '#94a2b4',
   'em-andamento': '#3b82f6',
   'aguardando': '#f59e0b',
+  'em-testes': '#a855f7',
   'concluido': '#22c55e',
 }
 

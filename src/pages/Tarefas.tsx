@@ -46,6 +46,7 @@ const FILTROS_STATUS: { value: StatusTarefa | 'todas'; label: string }[] = [
   { value: 'a-fazer', label: 'A Fazer' },
   { value: 'em-andamento', label: 'Em Andamento' },
   { value: 'aguardando', label: 'Aguardando' },
+  { value: 'em-testes', label: 'Em Testes' },
   { value: 'concluido', label: 'Concluídas' },
 ]
 

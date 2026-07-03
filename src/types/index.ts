@@ -1,4 +1,4 @@
-export type StatusTarefa = 'a-fazer' | 'em-andamento' | 'aguardando' | 'concluido'
+export type StatusTarefa = 'a-fazer' | 'em-andamento' | 'aguardando' | 'em-testes' | 'concluido'
 export type TipoRecorrencia = 'diaria' | 'semanal' | 'mensal'
 export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6
 export type NivelPrioridade = 'critica' | 'alta' | 'media' | 'baixa'

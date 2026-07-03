@@ -17,6 +17,7 @@ const COLUNAS: { id: StatusTarefa; label: string; color: string }[] = [
   { id: 'a-fazer', label: 'A Fazer', color: 'bg-slate-500' },
   { id: 'em-andamento', label: 'Em Andamento', color: 'bg-blue-500' },
   { id: 'aguardando', label: 'Aguardando', color: 'bg-amber-500' },
+  { id: 'em-testes', label: 'Em Testes', color: 'bg-purple-500' },
   { id: 'concluido', label: 'Concluído', color: 'bg-emerald-500' },
 ]
 

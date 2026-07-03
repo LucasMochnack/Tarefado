@@ -206,6 +206,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                   <option value="a-fazer">A Fazer</option>
                   <option value="em-andamento">Em Andamento</option>
                   <option value="aguardando">Aguardando</option>
+                  <option value="em-testes">Em Testes</option>
                   <option value="concluido">Concluído</option>
                 </SelectField>
               </Field>
