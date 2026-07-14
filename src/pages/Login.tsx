@@ -1,63 +1,83 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Zap, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Zap, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { entrar, criarConta } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 export function Login() {
-  const { login } = useStore()
+  const autenticado = useStore(s => s.autenticado)
   const navigate = useNavigate()
 
+  const [modo, setModo] = useState<'entrar' | 'criar'>('entrar')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
+  const [aviso, setAviso] = useState('')
   const [carregando, setCarregando] = useState(false)
+
+  // Assim que a sessão for estabelecida, entra no app
+  useEffect(() => {
+    if (autenticado) navigate('/kanban', { replace: true })
+  }, [autenticado, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setErro('')
+    setErro(''); setAviso('')
+    if (senha.length < 6) { setErro('A senha precisa ter ao menos 6 caracteres.'); return }
     setCarregando(true)
-
-    await new Promise(r => setTimeout(r, 600))
-
-    const ok = login(email.trim().toLowerCase(), senha)
-    if (ok) {
-      navigate('/dashboard', { replace: true })
-    } else {
-      setErro('E-mail ou senha incorretos.')
+    try {
+      if (modo === 'entrar') {
+        await entrar(email, senha)
+        // navegação acontece no useEffect quando `autenticado` vira true
+      } else {
+        const { precisaConfirmar } = await criarConta(email, senha)
+        if (precisaConfirmar) {
+          setAviso('Conta criada! Confirme pelo link enviado ao seu e-mail para entrar.')
+          setModo('entrar')
+          setCarregando(false)
+        }
+        // se não precisa confirmar, o login é automático (useEffect navega)
+      }
+    } catch (err: any) {
+      const msg = String(err?.message || err)
+      if (/Invalid login credentials/i.test(msg)) setErro('E-mail ou senha incorretos.')
+      else if (/already registered|already exists/i.test(msg)) setErro('Este e-mail já tem conta. Tente entrar.')
+      else setErro(msg)
       setCarregando(false)
     }
   }
 
+  const inputCls = (temErro: boolean) => cn(
+    'w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm transition-all outline-none',
+    'focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400',
+    temErro ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+  )
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-      {/* Fundo decorativo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-indigo-400/15 dark:bg-indigo-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-clay-300/15 dark:bg-clay-500/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Card */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
-
           {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-7">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 ring-1 ring-black/5">
               <Zap size={28} className="text-white" />
             </div>
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">Tarefado</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestão de tarefas e times</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {modo === 'entrar' ? 'Entre na sua conta' : 'Crie sua conta'}
+            </p>
           </div>
 
-          {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* E-mail */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                E-mail
-              </label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">E-mail</label>
               <input
                 type="email"
                 autoComplete="email"
@@ -65,35 +85,20 @@ export function Login() {
                 value={email}
                 onChange={e => { setEmail(e.target.value); setErro('') }}
                 placeholder="seu@email.com"
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm transition-all outline-none',
-                  'focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400',
-                  erro
-                    ? 'border-red-400 dark:border-red-500'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                )}
+                className={inputCls(!!erro)}
               />
             </div>
 
-            {/* Senha */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Senha
-              </label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Senha</label>
               <div className="relative">
                 <input
                   type={mostrarSenha ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
                   value={senha}
                   onChange={e => { setSenha(e.target.value); setErro('') }}
                   placeholder="••••••••"
-                  className={cn(
-                    'w-full px-4 py-2.5 pr-11 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm transition-all outline-none',
-                    'focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400',
-                    erro
-                      ? 'border-red-400 dark:border-red-500'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                  )}
+                  className={cn(inputCls(!!erro), 'pr-11')}
                 />
                 <button
                   type="button"
@@ -105,20 +110,17 @@ export function Login() {
               </div>
             </div>
 
-            {/* Erro */}
             {erro && (
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5">
-                <AlertCircle size={15} className="flex-shrink-0" />
-                {erro}
+                <AlertCircle size={15} className="flex-shrink-0" /> {erro}
+              </div>
+            )}
+            {aviso && (
+              <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2.5">
+                <CheckCircle2 size={15} className="flex-shrink-0" /> {aviso}
               </div>
             )}
 
-            {/* Dica acesso padrão */}
-            <div className="text-xs text-slate-400 dark:text-slate-500 text-center pt-1">
-              Acesso padrão: <span className="font-mono text-slate-500 dark:text-slate-400">admin@tarefado.com</span> / <span className="font-mono text-slate-500 dark:text-slate-400">admin123</span>
-            </div>
-
-            {/* Botão */}
             <button
               type="submit"
               disabled={carregando || !email || !senha}
@@ -135,12 +137,28 @@ export function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Entrando...
+                  {modo === 'entrar' ? 'Entrando...' : 'Criando...'}
                 </span>
-              ) : 'Entrar'}
+              ) : (modo === 'entrar' ? 'Entrar' : 'Criar conta')}
             </button>
           </form>
 
+          {/* Alternar entre entrar / criar conta */}
+          <div className="text-center text-sm text-slate-500 dark:text-slate-400 mt-5">
+            {modo === 'entrar' ? (
+              <>Primeiro acesso?{' '}
+                <button onClick={() => { setModo('criar'); setErro(''); setAviso('') }} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Criar conta
+                </button>
+              </>
+            ) : (
+              <>Já tem conta?{' '}
+                <button onClick={() => { setModo('entrar'); setErro(''); setAviso('') }} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Entrar
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-600 mt-4">

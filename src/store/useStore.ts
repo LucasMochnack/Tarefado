@@ -62,12 +62,14 @@ interface AppStore {
   tarefasRecorrentes: TarefaRecorrente[]
   darkMode: boolean
   autenticado: boolean
+  authInicializado: boolean
   usuarioNome: string
   usuarioEmail: string
   projetoSelecionado: string | null
 
   garantirProjetosPadrao: () => void
   setProjetoSelecionado: (id: string | null) => void
+  aplicarSessao: (email: string | null) => void
   login: (email: string, senha: string) => boolean
   logout: () => void
   addUsuario: (usuario: Omit<Usuario, 'id'>) => void
@@ -126,6 +128,7 @@ export const useStore = create<AppStore>()(
       darkMode: true,
       projetoSelecionado: null,
       autenticado: false,
+      authInicializado: false,
       usuarioNome: '',
       usuarioEmail: '',
 
@@ -370,6 +373,21 @@ export const useStore = create<AppStore>()(
 
       setProjetoSelecionado: (id) => set({ projetoSelecionado: id }),
 
+      // Reflete a sessão do Supabase Auth no estado do app (chamado pelo listener de auth)
+      aplicarSessao: (email) => {
+        if (!email) {
+          set({ autenticado: false, usuarioEmail: '', usuarioNome: '', authInicializado: true })
+          return
+        }
+        const perfil = get().usuarios.find(u => u.email.toLowerCase() === email.toLowerCase())
+        set({
+          autenticado: true,
+          usuarioEmail: email,
+          usuarioNome: perfil?.nome || email.split('@')[0],
+          authInicializado: true,
+        })
+      },
+
       // Garante que o projeto "Pessoais" exista (mesmo em localStorage antigo)
       garantirProjetosPadrao: () => {
         set(state => state.projetos.some(p => p.id === PROJETO_PESSOAIS.id)
@@ -385,9 +403,6 @@ export const useStore = create<AppStore>()(
         usuarios: state.usuarios,
         tarefasRecorrentes: state.tarefasRecorrentes,
         darkMode: state.darkMode,
-        autenticado: state.autenticado,
-        usuarioNome: state.usuarioNome,
-        usuarioEmail: state.usuarioEmail,
       }),
     }
   )

@@ -4,9 +4,10 @@ import { useStore } from '@/store/useStore'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
 import { useNavigate } from 'react-router-dom'
+import { sair } from '@/lib/auth'
 
 export function Header() {
-  const { darkMode, toggleDarkMode, logout, usuarioNome, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
+  const { darkMode, toggleDarkMode, usuarioNome, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
   const [taskOpen, setTaskOpen] = useState(false)
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
@@ -86,7 +87,7 @@ export function Header() {
               <span className="hidden lg:inline font-medium text-[13px]">{usuarioNome}</span>
             </div>
             <button
-              onClick={() => { logout(); navigate('/login') }}
+              onClick={async () => { await sair(); navigate('/login') }}
               className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
               title="Sair"
             >
