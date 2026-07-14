@@ -47,7 +47,17 @@
       "Bash(npx vite:*)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m 'chore: remove accidental temp file *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "WebFetch(domain:tarefado-git-main-lucas-mochnacks-projects.vercel.app)",
+      "Bash(rm -rf 'C:\\\\Users\\\\lucas.mochnack.MANHATTAN\\\\AppData\\\\Local\\\\Temp\\\\tarefado-design')",
+      "Bash(mkdir -p 'C:\\\\Users\\\\lucas.mochnack.MANHATTAN\\\\AppData\\\\Local\\\\Temp\\\\tarefado-design')",
+      "Bash(cp 'C:\\\\Users\\\\lucas.mochnack.MANHATTAN\\\\.claude\\\\projects\\\\C--Users-lucas-mochnack-MANHATTAN-Grupo-Alto-Valor-Dropbox-Lucas-Mochnack-PC-Downloads-Claude-Tarefado\\\\a8f4e232-5771-4b1d-a298-804bedd768b2\\\\tool-results\\\\webfetch-1780922481529-r4x3ta.bin' 'C:\\\\Users\\\\lucas.mochnack.MANHATTAN\\\\AppData\\\\Local\\\\Temp\\\\tarefado-design/bundle.gz')",
+      "Bash(tar -xzf bundle.gz)"
     ]
   }
 }

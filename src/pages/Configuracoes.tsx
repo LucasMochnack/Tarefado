@@ -30,10 +30,14 @@ export function Configuracoes() {
   const {
     darkMode, toggleDarkMode,
     tarefas,
+    projetos,
     recalcularPrioridades,
     usuarios, updateUsuario, addUsuario,
     tarefasRecorrentes,
+    usuarioEmail,
   } = useStore()
+
+  const souAdmin = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())?.admin ?? false
 
   const [resetOpen, setResetOpen] = useState(false)
   const [editandoUsuarioId, setEditandoUsuarioId] = useState<string | null>(null)
@@ -142,7 +146,8 @@ export function Configuracoes() {
         </div>
       </Section>
 
-      {/* Usuários e Cores */}
+      {/* Usuários e Cores — só o admin gerencia acesso a times e projetos */}
+      {souAdmin && (
       <Section title="Usuários" action={
         <button
           onClick={() => { setNovoUsuarioOpen(o => !o); setEditandoUsuarioId(null) }}
@@ -212,6 +217,17 @@ export function Configuracoes() {
               toast.success('Times atualizados!')
             }
             const veeTudo = u.admin || timesUsuario.includes('performance') || timesUsuario.length === 0
+
+            const projetosUsuario: string[] = u.projetosPermitidos ?? []
+            const toggleProjeto = (projId: string) => {
+              const novos = projetosUsuario.includes(projId)
+                ? projetosUsuario.filter(p => p !== projId)
+                : [...projetosUsuario, projId]
+              updateUsuario(u.id, { projetosPermitidos: novos })
+              toast.success('Projetos atualizados!')
+            }
+            const veTodosProjetos = u.admin || projetosUsuario.length === 0
+
             const isEditando = editandoUsuarioId === u.id
 
             const startEdit = () => {
@@ -354,11 +370,54 @@ export function Configuracoes() {
                   <p className="text-[11px] text-slate-400 mt-1.5 italic">Nenhum time selecionado → acesso a todos</p>
                 )}
               </div>
+
+              {/* Projetos com acesso */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Projetos com acesso
+                  </p>
+                  {veTodosProjetos && (
+                    <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">
+                      {u.admin ? 'Admin — vê tudo' : 'Vê todos os projetos'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {projetos.map(p => {
+                    const ativo = projetosUsuario.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => !u.admin && toggleProjeto(p.id)}
+                        disabled={u.admin}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors inline-flex items-center gap-1.5',
+                          ativo
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600',
+                          u.admin && 'opacity-40 cursor-not-allowed'
+                        )}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/20"
+                          style={{ backgroundColor: p.cor }}
+                        />
+                        {p.nome}
+                      </button>
+                    )
+                  })}
+                </div>
+                {!u.admin && projetosUsuario.length === 0 && (
+                  <p className="text-[11px] text-slate-400 mt-1.5 italic">Nenhum projeto selecionado → vê todos os projetos</p>
+                )}
+              </div>
             </div>
             )
           })}
         </div>
       </Section>
+      )}
 
       {/* Dados */}
       <Section title="Dados e Persistência">

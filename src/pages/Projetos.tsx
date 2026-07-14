@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, ChevronRight, Calendar, CheckCircle2, Clock } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { Projeto, QuadranteEisenhower } from '@/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
@@ -44,7 +45,11 @@ const QUADRANTES: { id: QuadranteEisenhower; label: string; sub: string; color: 
 ]
 
 export function Projetos() {
-  const { projetos, tarefas } = useStore()
+  const { projetos: todosProjetos, tarefas } = useStore()
+  const projetosPermitidos = useProjetosPermitidos()
+  const projetos = projetosPermitidos
+    ? todosProjetos.filter(p => projetosPermitidos.includes(p.id))
+    : todosProjetos
   const navigate = useNavigate()
   const [projectOpen, setProjectOpen] = useState(false)
 

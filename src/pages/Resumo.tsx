@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore'
 import { Tarefa, StatusTarefa } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import { cn } from '@/lib/utils'
 
@@ -24,11 +25,12 @@ const SEM_PROJETO = { nome: 'Sem projeto', cor: '#5d6b7d' }
 export function Resumo() {
   const { tarefas: todasTarefas, projetos, projetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
+  const projetosPermitidos = useProjetosPermitidos()
   const [weekOffset, setWeekOffset] = useState(0)
   const [selected, setSelected] = useState<Tarefa | null>(null)
 
   const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
-  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado, projetosPermitidos)
 
   const projMap = (id: string) => projetos.find(p => p.id === id) ?? SEM_PROJETO
 

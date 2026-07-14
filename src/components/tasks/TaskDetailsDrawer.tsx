@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Tarefa, StatusTarefa, Time, NivelPrioridade } from '@/types'
 import { useStore } from '@/store/useStore'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge, ScoreBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
@@ -318,6 +319,7 @@ function InlineSelect<T extends string>({
 
 export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDrawerProps) {
   const { updateTarefa, deleteTarefa, usuarios, tarefas, projetos } = useStore()
+  const projetosPermitidos = useProjetosPermitidos()
   // Sempre busca a versão mais recente do store para evitar dados desatualizados
   const tarefa = tarefas.find(t => t.id === tarefaProp?.id) ?? tarefaProp
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -381,7 +383,9 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
 
   const projetoOptions = [
     { value: '', label: '— Sem projeto —' },
-    ...projetos.map(p => ({ value: p.id, label: p.nome })),
+    ...projetos
+      .filter(p => !projetosPermitidos || projetosPermitidos.includes(p.id))
+      .map(p => ({ value: p.id, label: p.nome })),
   ]
 
   return (

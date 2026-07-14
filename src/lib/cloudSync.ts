@@ -176,12 +176,16 @@ export async function iniciarSync() {
   if (!supabase || iniciado) return
   iniciado = true
   try {
-    const { vazio } = await puxarDaNuvem()
+    await puxarDaNuvem()
     sincronizadoOk = true
-    // pós-pull: garante o projeto Pessoais e gera recorrentes do dia (sobre os dados da nuvem)
+    // pós-pull (sobre os dados da nuvem): garante o projeto Pessoais, gera recorrentes
+    // do dia e garante o perfil de quem entrou (para o admin poder atribuir projetos).
     useStore.getState().garantirProjetosPadrao()
     useStore.getState().processarRecorrentes()
-    if (vazio) await empurrarMudancas() // primeira vez: sobe o local
+    const email = useStore.getState().usuarioEmail
+    if (email) useStore.getState().garantirPerfilUsuario(email)
+    // Push diff-based: sobe só o que difere do snapshot (perfil novo, Pessoais, etc.)
+    await empurrarMudancas()
   } catch (err) {
     console.error('[cloudSync] pull inicial', err)
     iniciado = false           // pull falhou → não habilita push (evita sobrescrever a nuvem)

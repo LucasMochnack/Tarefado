@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Plus, Trash2, GripVertical, ChevronDown, Pencil, ListChecks } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { Tarefa, StatusTarefa, NivelPrioridade, Time } from '@/types'
 import { addDaysISO } from '@/utils/dates'
 import { RESPONSAVEIS } from '@/data/mockData'
@@ -59,6 +60,10 @@ function SelectField({ value, onChange, children }: { value: string; onChange: (
 
 export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defaultTime }: TaskFormModalProps) {
   const { addTarefa, updateTarefa, usuarios, usuarioEmail, projetos, projetoSelecionado } = useStore()
+  const projetosPermitidos = useProjetosPermitidos()
+  const projetosDisponiveis = projetosPermitidos
+    ? projetos.filter(p => projetosPermitidos.includes(p.id))
+    : projetos
   const isEdit = !!tarefa
 
   const usuarioLogado = usuarios.find(u => u.email.toLowerCase() === usuarioEmail.toLowerCase())
@@ -266,7 +271,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
               <Field label="Projeto">
                 <SelectField value={form.projetoId} onChange={v => setForm(f => ({ ...f, projetoId: v }))}>
                   <option value="">— Sem projeto —</option>
-                  {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  {projetosDisponiveis.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </SelectField>
               </Field>
               <Field label="Tags">

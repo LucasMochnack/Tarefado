@@ -22,6 +22,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { isOverdue, prazoLabel, addDaysISO } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import toast from 'react-hot-toast'
 
@@ -169,8 +170,9 @@ export function Tarefas() {
     reordenarManual,
   } = useStore()
   const timesPermitidos = usePermissoes()
+  const projetosPermitidos = useProjetosPermitidos()
   const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
-  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado, projetosPermitidos)
 
   const [aba, setAba] = useState<'tarefas' | 'recorrentes'>('tarefas')
   const [taskOpen, setTaskOpen] = useState(false)

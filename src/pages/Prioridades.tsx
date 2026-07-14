@@ -11,6 +11,7 @@ import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
 import { isOverdue, daysSinceUpdate, prazoLabel } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import toast from 'react-hot-toast'
 
@@ -74,8 +75,9 @@ const QUADRANTES: {
 export function Prioridades() {
   const { tarefas: todasTarefas, recalcularPrioridades, updateTarefa, projetos, projetoSelecionado, setProjetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
+  const projetosPermitidos = useProjetosPermitidos()
   const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
-  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado, projetosPermitidos)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [nivelFilter, setNivelFilter] = useState<NivelPrioridade | ''>('')
@@ -170,7 +172,7 @@ export function Prioridades() {
         >
           Todos os projetos
         </button>
-        {projetos.map(p => (
+        {projetos.filter(p => !projetosPermitidos || projetosPermitidos.includes(p.id)).map(p => (
           <button
             key={p.id}
             onClick={() => setProjetoSelecionado(projetoSelecionado === p.id ? null : p.id)}

@@ -16,6 +16,7 @@ export interface Usuario {
   foto?: string     // base64 da foto de perfil
   cargo?: string    // cargo/time principal — vira default ao criar tarefa
   times?: string[]  // times que o usuário pode ver; vazio/undefined = vê tudo
+  projetosPermitidos?: string[]  // projetos que pode ver; vazio/undefined = vê todos
 }
 
 const USUARIO_PADRAO: Usuario = {
@@ -68,6 +69,7 @@ interface AppStore {
   projetoSelecionado: string | null
 
   garantirProjetosPadrao: () => void
+  garantirPerfilUsuario: (email: string) => boolean
   setProjetoSelecionado: (id: string | null) => void
   aplicarSessao: (email: string | null) => void
   login: (email: string, senha: string) => boolean
@@ -393,6 +395,24 @@ export const useStore = create<AppStore>()(
         set(state => state.projetos.some(p => p.id === PROJETO_PESSOAIS.id)
           ? state
           : { projetos: [...state.projetos, PROJETO_PESSOAIS] })
+      },
+
+      // Garante que quem entra tenha um perfil na lista de usuários — assim o admin
+      // consegue vê-lo e definir os projetos. Novos cadastros entram como não-admin
+      // sem projetos (= vê todos) até o admin restringir. Retorna true se criou.
+      garantirPerfilUsuario: (email) => {
+        const existe = get().usuarios.some(u => u.email.toLowerCase() === email.toLowerCase())
+        if (existe) return false
+        const novo: Usuario = {
+          id: `usr-${gerarId()}`,
+          nome: email.split('@')[0],
+          email: email.toLowerCase(),
+          senha: '',
+          admin: false,
+          projetosPermitidos: [],
+        }
+        set(state => ({ usuarios: [...state.usuarios, novo] }))
+        return true
       },
     }),
     {

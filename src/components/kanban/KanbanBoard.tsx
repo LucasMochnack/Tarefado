@@ -11,6 +11,7 @@ import { KanbanCard } from './KanbanCard'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { isOverdue, daysSinceUpdate } from '@/utils/dates'
 import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import toast from 'react-hot-toast'
 
 const COLUNAS: { id: StatusTarefa; label: string; color: string }[] = [
@@ -40,8 +41,9 @@ interface KanbanBoardProps {
 export function KanbanBoard({ filtros }: KanbanBoardProps) {
   const { tarefas: todasTarefas, projetos, moveTarefa, projetoSelecionado } = useStore()
   const timesPermitidos = usePermissoes()
+  const projetosPermitidos = useProjetosPermitidos()
   const permitidas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
-  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado)
+  const tarefas = aplicarFiltroProjeto(permitidas, projetos, projetoSelecionado, projetosPermitidos)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

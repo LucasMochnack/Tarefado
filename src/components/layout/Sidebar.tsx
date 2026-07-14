@@ -12,6 +12,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { Projeto } from '@/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 
@@ -78,6 +79,10 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { projetos, projetoSelecionado, setProjetoSelecionado, reordenarProjetos } = useStore()
+  const projetosPermitidos = useProjetosPermitidos()
+  const projetosVisiveis = projetosPermitidos
+    ? projetos.filter(p => projetosPermitidos.includes(p.id))
+    : projetos
   const navigate = useNavigate()
   const location = useLocation()
   const [projModalOpen, setProjModalOpen] = useState(false)
@@ -197,7 +202,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
           {/* Lista de projetos */}
           {collapsed ? (
-            projetos.map(p => (
+            projetosVisiveis.map(p => (
               <button
                 key={p.id}
                 onClick={() => selecionarProjeto(p.id)}
@@ -212,8 +217,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             ))
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjetoDragEnd}>
-              <SortableContext items={projetos.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                {projetos.map(p => (
+              <SortableContext items={projetosVisiveis.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                {projetosVisiveis.map(p => (
                   <SortableProjetoRow
                     key={p.id}
                     p={p}
@@ -237,7 +242,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </button>
           )}
 
-          {projetos.length === 0 && !collapsed && (
+          {projetosVisiveis.length === 0 && !collapsed && (
             <p className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500 italic flex items-center gap-1.5">
               <Folder size={12} /> Nenhum projeto
             </p>

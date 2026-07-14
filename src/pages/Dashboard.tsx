@@ -20,6 +20,7 @@ import {
 } from 'recharts'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
+import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 
 const TIME_COLORS: Record<Time, string> = {
   'b2c': '#8b5cf6',
@@ -33,9 +34,14 @@ const TIME_COLORS: Record<Time, string> = {
 }
 
 export function Dashboard() {
-  const { tarefas: todasTarefas, projetos, usuarios, addUsuario, deleteUsuario, usuarioEmail } = useStore()
+  const { tarefas: todasTarefas, projetos: todosProjetos, usuarios, addUsuario, deleteUsuario, usuarioEmail } = useStore()
   const timesPermitidos = usePermissoes()
-  const tarefas = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const projetosPermitidos = useProjetosPermitidos()
+  const projetos = projetosPermitidos
+    ? todosProjetos.filter(p => projetosPermitidos.includes(p.id))
+    : todosProjetos
+  const porTime = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
+  const tarefas = projetosPermitidos ? porTime.filter(t => projetosPermitidos.includes(t.projetoId)) : porTime
   const navigate = useNavigate()
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

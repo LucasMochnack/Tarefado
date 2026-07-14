@@ -2,18 +2,23 @@ import { Tarefa, Projeto } from '@/types'
 
 /**
  * Aplica o filtro de projeto às tarefas.
- * - Com um projeto selecionado: mostra apenas as tarefas dele (mesmo que seja oculto).
- * - Em "Todos os projetos" (null): esconde tarefas de projetos marcados como `ocultarEmTodos`
- *   (ex.: "Pessoais").
+ * - `permitidos` (null = sem restrição): limita ao que o usuário pode ver.
+ * - Com um projeto selecionado: só as tarefas dele (se permitido).
+ * - Em "Todos os projetos": esconde projetos `ocultarEmTodos` e, se restrito,
+ *   mostra apenas os projetos permitidos.
  */
 export function aplicarFiltroProjeto(
   tarefas: Tarefa[],
   projetos: Projeto[],
-  projetoSelecionado: string | null
+  projetoSelecionado: string | null,
+  permitidos: string[] | null = null,
 ): Tarefa[] {
+  const podeVer = (projId: string) => !permitidos || permitidos.includes(projId)
+
   if (projetoSelecionado) {
+    if (!podeVer(projetoSelecionado)) return []
     return tarefas.filter(t => t.projetoId === projetoSelecionado)
   }
   const ocultos = new Set(projetos.filter(p => p.ocultarEmTodos).map(p => p.id))
-  return tarefas.filter(t => !ocultos.has(t.projetoId))
+  return tarefas.filter(t => !ocultos.has(t.projetoId) && podeVer(t.projetoId))
 }
