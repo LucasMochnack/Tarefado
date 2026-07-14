@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { useStore } from '@/store/useStore'
 
@@ -11,25 +12,33 @@ const TABELAS = {
 
 type StoreKey = keyof typeof TABELAS
 type Item = { id: string } & Record<string, unknown>
+const CHAVES = Object.keys(TABELAS) as StoreKey[]
 
-// Último estado sincronizado (id -> JSON) para calcular diffs
+// Serialização canônica (chaves ordenadas) — estável mesmo com a reordenação do JSONB
+function stable(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v)
+  if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']'
+  const o = v as Record<string, unknown>
+  return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + stable(o[k])).join(',') + '}'
+}
+
+// Último estado sincronizado (id -> JSON canônico) para calcular diffs / suprimir eco
 const snapshot: Record<StoreKey, Map<string, string>> = {
-  tarefas: new Map(),
-  projetos: new Map(),
-  tarefasRecorrentes: new Map(),
-  usuarios: new Map(),
+  tarefas: new Map(), projetos: new Map(), tarefasRecorrentes: new Map(), usuarios: new Map(),
 }
 
 let iniciado = false
 let puxando = false
+let sincronizadoOk = false           // só empurra depois de um pull bem-sucedido
+let canal: RealtimeChannel | null = null
+let unsubStore: (() => void) | null = null
 
 function itensDoEstado(key: StoreKey): Item[] {
   return (useStore.getState() as any)[key] as Item[]
 }
-
 function setSnapshot(key: StoreKey, itens: Item[]) {
   const m = new Map<string, string>()
-  for (const it of itens) m.set(it.id, JSON.stringify(it))
+  for (const it of itens) m.set(it.id, stable(it))
   snapshot[key] = m
 }
 
@@ -38,28 +47,22 @@ export async function puxarDaNuvem(): Promise<{ vazio: boolean }> {
   if (!supabase) return { vazio: true }
   puxando = true
   try {
-    const chaves = Object.keys(TABELAS) as StoreKey[]
-    const resultados = await Promise.all(
-      chaves.map(k => supabase!.from(TABELAS[k]).select('data'))
-    )
-    let totalLinhas = 0
+    const resultados = await Promise.all(CHAVES.map(k => supabase!.from(TABELAS[k]).select('data')))
+    let total = 0
     const patch: Partial<Record<StoreKey, Item[]>> = {}
-    chaves.forEach((k, i) => {
+    CHAVES.forEach((k, i) => {
       const { data, error } = resultados[i]
       if (error) throw error
       const itens = (data ?? []).map((r: any) => r.data as Item)
-      totalLinhas += itens.length
+      total += itens.length
       patch[k] = itens
     })
-
-    if (totalLinhas > 0) {
-      // Nuvem tem dados → substitui o store e marca como sincronizado
+    if (total > 0) {
       useStore.setState(patch as any)
-      chaves.forEach(k => setSnapshot(k, patch[k] ?? []))
+      CHAVES.forEach(k => setSnapshot(k, patch[k] ?? []))
       return { vazio: false }
     }
-    // Nuvem vazia → marca snapshot vazio (para a migração empurrar o local)
-    chaves.forEach(k => setSnapshot(k, []))
+    CHAVES.forEach(k => setSnapshot(k, []))
     return { vazio: true }
   } finally {
     puxando = false
@@ -70,59 +73,137 @@ async function upsert(key: StoreKey, item: Item) {
   if (!supabase) return
   await supabase.from(TABELAS[key]).upsert({ id: item.id, data: item, updated_at: new Date().toISOString() })
 }
-
 async function remover(key: StoreKey, id: string) {
   if (!supabase) return
   await supabase.from(TABELAS[key]).delete().eq('id', id)
 }
 
-/** Empurra para a nuvem apenas o que mudou desde o último snapshot. */
+/** Empurra o que mudou; atualiza o snapshot por-id (preserva o que o Realtime tocou). */
 async function empurrarMudancas() {
-  if (!supabase || puxando) return
-  const chaves = Object.keys(TABELAS) as StoreKey[]
-  for (const key of chaves) {
+  if (!supabase || puxando || !sincronizadoOk) return
+  for (const key of CHAVES) {
     const itens = itensDoEstado(key)
-    const atual = new Map<string, string>()
+    const ids = new Set<string>()
     const ops: Promise<unknown>[] = []
     for (const it of itens) {
-      const json = JSON.stringify(it)
-      atual.set(it.id, json)
-      if (snapshot[key].get(it.id) !== json) ops.push(upsert(key, it))
+      ids.add(it.id)
+      const json = stable(it)
+      if (snapshot[key].get(it.id) !== json) {
+        ops.push(upsert(key, it).then(() => snapshot[key].set(it.id, json)))
+      }
     }
-    // Removidos: estavam no snapshot e sumiram
-    for (const id of snapshot[key].keys()) {
-      if (!atual.has(id)) ops.push(remover(key, id))
+    for (const id of [...snapshot[key].keys()]) {
+      if (!ids.has(id)) ops.push(remover(key, id).then(() => snapshot[key].delete(id)))
     }
-    if (ops.length) {
-      await Promise.allSettled(ops)
-      snapshot[key] = atual
-    }
+    if (ops.length) await Promise.allSettled(ops)
+  }
+}
+
+// Mutex: nunca roda dois pushes ao mesmo tempo; re-executa se algo mudou durante
+let empurrando = false
+let repetir = false
+async function empurrarSeguro() {
+  if (empurrando) { repetir = true; return }
+  empurrando = true
+  try {
+    do { repetir = false; await empurrarMudancas() } while (repetir)
+  } catch (err) {
+    console.error('[cloudSync] push', err)
+  } finally {
+    empurrando = false
   }
 }
 
 let debounce: ReturnType<typeof setTimeout> | null = null
 function agendarPush() {
-  if (!supabase || puxando) return
+  if (!supabase || puxando || !sincronizadoOk) return
   if (debounce) clearTimeout(debounce)
-  debounce = setTimeout(() => { empurrarMudancas().catch(err => console.error('[cloudSync] push', err)) }, 700)
+  debounce = setTimeout(() => { empurrarSeguro() }, 700)
 }
 
+// ── Tempo real: aplica no store as mudanças vindas da nuvem ──
+function aplicarRemoto(key: StoreKey, payload: any) {
+  if (payload.eventType === 'DELETE') {
+    const id = payload.old?.id
+    if (!id || !snapshot[key].has(id)) return
+    useStore.setState({ [key]: itensDoEstado(key).filter(i => i.id !== id) } as any)
+    snapshot[key].delete(id)
+    return
+  }
+  const item = payload.new?.data as Item | undefined
+  if (!item?.id) return
+  const json = stable(item)
+  if (snapshot[key].get(item.id) === json) return // eco do nosso próprio write
+  const atual = itensDoEstado(key)
+  const existe = atual.some(i => i.id === item.id)
+  useStore.setState({
+    [key]: existe ? atual.map(i => (i.id === item.id ? item : i)) : [...atual, item],
+  } as any)
+  snapshot[key].set(item.id, json)
+}
+
+async function reconciliar() {
+  if (!sincronizadoOk) return
+  try { await puxarDaNuvem() } catch (err) { console.error('[cloudSync] reconciliar', err) }
+}
+
+async function iniciarRealtime() {
+  if (!supabase || canal) return
+  // Realtime com RLS exige o token da sessão para receber os eventos
+  const { data } = await supabase.auth.getSession()
+  if (data.session?.access_token) supabase.realtime.setAuth(data.session.access_token)
+  const ch = supabase.channel('tarefado-rt')
+  CHAVES.forEach(key => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: TABELAS[key] }, p => {
+      if (!puxando) aplicarRemoto(key, p)
+    })
+  })
+  ch.subscribe(status => {
+    // Ao (re)conectar, re-puxa para cobrir a janela pull↔subscribe e eventos perdidos offline
+    if (status === 'SUBSCRIBED') reconciliar()
+  })
+  canal = ch
+}
+
+// Backfill quando a aba volta ao foco / reconecta a internet
+const onWake = () => reconciliar()
+
 /**
- * Liga a sincronização: puxa da nuvem, migra o local se a nuvem estiver vazia,
- * e passa a empurrar mudanças do store para a nuvem.
+ * Liga a sincronização de UMA sessão: pull → (migra local se nuvem vazia) →
+ * escuta mudanças do store e da nuvem. Chamada no login (SIGNED_IN/INITIAL_SESSION).
  */
 export async function iniciarSync() {
   if (!supabase || iniciado) return
   iniciado = true
   try {
     const { vazio } = await puxarDaNuvem()
-    if (vazio) {
-      // Primeira vez: sobe o que já existe localmente para a nuvem
-      await empurrarMudancas()
-    }
+    sincronizadoOk = true
+    // pós-pull: garante o projeto Pessoais e gera recorrentes do dia (sobre os dados da nuvem)
+    useStore.getState().garantirProjetosPadrao()
+    useStore.getState().processarRecorrentes()
+    if (vazio) await empurrarMudancas() // primeira vez: sobe o local
   } catch (err) {
     console.error('[cloudSync] pull inicial', err)
+    iniciado = false           // pull falhou → não habilita push (evita sobrescrever a nuvem)
+    return
   }
-  // Empurra qualquer alteração futura do store
-  useStore.subscribe(() => agendarPush())
+  unsubStore = useStore.subscribe(() => agendarPush())
+  iniciarRealtime()
+  window.addEventListener('focus', onWake)
+  window.addEventListener('online', onWake)
+}
+
+/** Encerra a sincronização e limpa tudo (chamada no logout — evita vazar dados entre contas). */
+export async function pararSync() {
+  if (debounce) { clearTimeout(debounce); debounce = null }
+  if (unsubStore) { unsubStore(); unsubStore = null }
+  window.removeEventListener('focus', onWake)
+  window.removeEventListener('online', onWake)
+  if (canal && supabase) { try { await supabase.removeChannel(canal) } catch { /* ok */ } }
+  canal = null
+  CHAVES.forEach(k => snapshot[k].clear())
+  iniciado = false
+  sincronizadoOk = false
+  // Zera os dados em memória para o próximo login não ver nada do usuário anterior
+  useStore.setState({ tarefas: [], projetos: [], tarefasRecorrentes: [], usuarios: [] } as any)
 }

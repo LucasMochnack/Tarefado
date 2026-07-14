@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { useStore } from '@/store/useStore'
+import { iniciarSync, pararSync } from './cloudSync'
 
 /** Entrar com e-mail + senha (Supabase Auth). */
 export async function entrar(email: string, senha: string) {
@@ -22,16 +23,23 @@ export async function sair() {
   else useStore.getState().aplicarSessao(null)
 }
 
-/** Inicializa a auth: aplica a sessão atual e escuta mudanças. */
+/**
+ * Inicializa a auth. O ciclo de vida do sync é amarrado à SESSÃO:
+ * - login (SIGNED_IN / INITIAL_SESSION com sessão)  → iniciarSync (pull limpo)
+ * - logout (SIGNED_OUT)                              → pararSync (teardown + limpa dados)
+ */
 export function iniciarAuth() {
   if (!supabase) {
     useStore.getState().aplicarSessao(null)
     return
   }
-  supabase.auth.getSession().then(({ data }) => {
-    useStore.getState().aplicarSessao(data.session?.user?.email ?? null)
-  })
-  supabase.auth.onAuthStateChange((_event, session) => {
-    useStore.getState().aplicarSessao(session?.user?.email ?? null)
+  supabase.auth.onAuthStateChange((event, session) => {
+    const email = session?.user?.email ?? null
+    useStore.getState().aplicarSessao(email)
+    if (email && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+      iniciarSync().catch(err => console.error('[auth] iniciarSync', err))
+    } else if (event === 'SIGNED_OUT') {
+      pararSync().catch(err => console.error('[auth] pararSync', err))
+    }
   })
 }

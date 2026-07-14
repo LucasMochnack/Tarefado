@@ -4,7 +4,6 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Toaster } from 'react-hot-toast'
 import { useStore } from '@/store/useStore'
-import { iniciarSync } from '@/lib/cloudSync'
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -12,22 +11,15 @@ export function Layout() {
   const processarRecorrentes = useStore(s => s.processarRecorrentes)
   const garantirProjetosPadrao = useStore(s => s.garantirProjetosPadrao)
 
+  // O sync com a nuvem é dirigido pela sessão (ver lib/auth.ts). Aqui só cuidamos
+  // do projeto padrão e das recorrentes do dia (e reprocessa ao focar a aba).
   useEffect(() => {
-    let cancel = false
-    ;(async () => {
-      // 1) puxa os dados da nuvem (ou sobe o local se a nuvem estiver vazia)
-      await iniciarSync()
-      if (cancel) return
-      // 2) garante o projeto Pessoais e gera as tarefas recorrentes do dia
-      garantirProjetosPadrao()
-      processarRecorrentes()
-    })()
-
+    garantirProjetosPadrao()
+    processarRecorrentes()
     const onFocus = () => processarRecorrentes()
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onFocus)
     return () => {
-      cancel = true
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onFocus)
     }
