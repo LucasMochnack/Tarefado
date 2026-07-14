@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Toaster } from 'react-hot-toast'
 import { useStore } from '@/store/useStore'
+import { iniciarSync } from '@/lib/cloudSync'
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -12,21 +13,25 @@ export function Layout() {
   const garantirProjetosPadrao = useStore(s => s.garantirProjetosPadrao)
 
   useEffect(() => {
-    garantirProjetosPadrao()
-  }, [garantirProjetosPadrao])
+    let cancel = false
+    ;(async () => {
+      // 1) puxa os dados da nuvem (ou sobe o local se a nuvem estiver vazia)
+      await iniciarSync()
+      if (cancel) return
+      // 2) garante o projeto Pessoais e gera as tarefas recorrentes do dia
+      garantirProjetosPadrao()
+      processarRecorrentes()
+    })()
 
-  useEffect(() => {
-    // Processa ao abrir o app e sempre que a aba volta ao foco
-    // (cobre o caso de deixar o app aberto e virar o dia)
-    processarRecorrentes()
     const onFocus = () => processarRecorrentes()
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onFocus)
     return () => {
+      cancel = true
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onFocus)
     }
-  }, [processarRecorrentes])
+  }, [processarRecorrentes, garantirProjetosPadrao])
 
   return (
     <div className={darkMode ? 'dark' : ''}>
