@@ -1,9 +1,9 @@
-import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, Camera, Save, X } from 'lucide-react'
+import { Sun, Moon, Trash2, RefreshCw, Database, Zap, Plus, Edit2, Camera, Save, X, Download, Upload } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import type { Usuario } from '@/store/useStore'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Time } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -43,14 +43,71 @@ export function Configuracoes() {
 
   const iCls = 'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30'
 
+  const [restaurarOpen, setRestaurarOpen] = useState(false)
+  const [importData, setImportData] = useState<any | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
   const handleReset = () => {
     useStore.setState({ tarefas: TAREFAS_INICIAIS, projetos: PROJETOS_INICIAIS })
-    toast.success('Dados resetados para os valores iniciais!')
+    toast.success('Dados de demonstração restaurados.')
+    setRestaurarOpen(false)
   }
 
   const handleClearAll = () => {
     useStore.setState({ tarefas: [], projetos: [] })
     toast.success('Todos os dados foram limpos!')
+  }
+
+  // ── Backup ──────────────────────────────────────────────
+  const handleExport = () => {
+    const s = useStore.getState()
+    const dump = {
+      _app: 'tarefado',
+      _versao: 1,
+      _exportadoEm: new Date().toISOString(),
+      tarefas: s.tarefas,
+      projetos: s.projetos,
+      usuarios: s.usuarios,
+      tarefasRecorrentes: s.tarefasRecorrentes,
+    }
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tarefado-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Backup exportado!')
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result))
+        if (!Array.isArray(data.tarefas)) throw new Error('formato inválido')
+        setImportData(data)
+      } catch {
+        toast.error('Arquivo de backup inválido.')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const handleImportConfirm = () => {
+    const d = importData
+    if (!d) return
+    useStore.setState({
+      tarefas: Array.isArray(d.tarefas) ? d.tarefas : [],
+      projetos: Array.isArray(d.projetos) ? d.projetos : [],
+      usuarios: Array.isArray(d.usuarios) && d.usuarios.length ? d.usuarios : useStore.getState().usuarios,
+      tarefasRecorrentes: Array.isArray(d.tarefasRecorrentes) ? d.tarefasRecorrentes : [],
+    })
+    setImportData(null)
+    toast.success('Backup restaurado com sucesso!')
   }
 
   return (
@@ -311,6 +368,29 @@ export function Configuracoes() {
           <InfoRow label="Armazenamento" value="localStorage (local)" />
           <InfoRow label="Persistência" value="Automática" />
         </div>
+
+        {/* Backup */}
+        <div className="mt-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Backup dos seus dados</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">
+            Os dados ficam só neste navegador. Exporte um backup de vez em quando — e use-o para restaurar ou levar seus dados para outro computador.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
+            >
+              <Download size={14} /> Exportar backup
+            </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+            >
+              <Upload size={14} /> Importar backup
+            </button>
+            <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
+          </div>
+        </div>
       </Section>
 
       {/* Ações */}
@@ -327,10 +407,10 @@ export function Configuracoes() {
           <ActionCard
             icon={Database}
             title="Restaurar dados de demonstração"
-            desc="Recarrega os dados fictícios iniciais. Dados atuais serão sobrescritos."
+            desc="⚠️ Apaga TODAS as suas tarefas e coloca dados fictícios de exemplo no lugar. Faça um backup antes."
             buttonLabel="Restaurar"
             buttonColor="amber"
-            onClick={handleReset}
+            onClick={() => setRestaurarOpen(true)}
           />
           <ActionCard
             icon={Trash2}
@@ -366,6 +446,24 @@ export function Configuracoes() {
         description="Esta ação removerá TODAS as tarefas e projetos permanentemente. Tem certeza?"
         confirmLabel="Limpar tudo"
         onConfirm={handleClearAll}
+      />
+
+      <ConfirmDialog
+        open={restaurarOpen}
+        onOpenChange={setRestaurarOpen}
+        title="Restaurar dados de demonstração"
+        description="Isto vai APAGAR todas as suas tarefas e projetos atuais e colocar os dados fictícios de exemplo no lugar. Essa ação não pode ser desfeita. Tem certeza?"
+        confirmLabel="Sim, restaurar exemplo"
+        onConfirm={handleReset}
+      />
+
+      <ConfirmDialog
+        open={!!importData}
+        onOpenChange={v => !v && setImportData(null)}
+        title="Importar backup"
+        description={importData ? `Restaurar ${importData.tarefas?.length ?? 0} tarefa(s) e ${importData.projetos?.length ?? 0} projeto(s) deste arquivo? Isso substitui os dados atuais deste navegador.` : ''}
+        confirmLabel="Importar"
+        onConfirm={handleImportConfirm}
       />
     </div>
   )
