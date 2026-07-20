@@ -214,6 +214,14 @@ export const useStore = create<AppStore>()(
           const novasTarefas = state.tarefas.map(t => {
             if (t.id !== id) return t
             const atualizada = { ...t, ...data, atualizadoEm: todayISO(), ultimaAtualizacao: todayISO() }
+            // Carimbo de conclusão: marca ao ENTRAR em "concluído" (não re-carimba em
+            // edições posteriores); limpa ao reabrir, pra o contador de 24h reiniciar
+            // numa próxima conclusão.
+            if (atualizada.status === 'concluido' && t.status !== 'concluido') {
+              atualizada.concluidoEm = todayISO()
+            } else if (atualizada.status !== 'concluido') {
+              atualizada.concluidoEm = undefined
+            }
             return recalcularTarefa(atualizada, projetos)
           })
           return {

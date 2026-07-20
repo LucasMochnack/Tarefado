@@ -40,6 +40,7 @@ export interface Tarefa {
   criadoEm: string
   atualizadoEm: string
   ultimaAtualizacao: string
+  concluidoEm?: string   // quando entrou em "Concluído" (some do board 24h depois)
   horaAgenda?: string
   horaFim?: string
   cor?: string

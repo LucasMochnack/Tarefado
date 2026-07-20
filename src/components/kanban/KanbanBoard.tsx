@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext, DragEndEvent, DragStartEvent, CollisionDetection,
   DragOverlay, pointerWithin, closestCorners, PointerSensor, useSensor, useSensors
@@ -9,7 +9,7 @@ import { usePermissoes } from '@/hooks/usePermissoes'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
-import { isOverdue, daysSinceUpdate } from '@/utils/dates'
+import { isOverdue, daysSinceUpdate, horasDesde } from '@/utils/dates'
 import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import toast from 'react-hot-toast'
@@ -24,6 +24,16 @@ const COLUNAS: { id: StatusTarefa; label: string; color: string }[] = [
 
 // Ordem de criticidade (menor = mais crítico, vai pro topo)
 const CRIT_RANK: Record<string, number> = { critica: 0, alta: 1, media: 2, baixa: 3 }
+
+// Concluídas ficam visíveis no board por este tempo; depois somem (não são apagadas)
+const HORAS_VISIVEL_CONCLUIDA = 24
+
+// true quando a tarefa concluída já passou da janela de exibição
+function concluidaExpirada(t: Tarefa): boolean {
+  if (t.status !== 'concluido') return false
+  const ref = t.concluidoEm ?? t.atualizadoEm ?? t.ultimaAtualizacao
+  return horasDesde(ref) > HORAS_VISIVEL_CONCLUIDA
+}
 
 const COLUNA_IDS = new Set<string>(COLUNAS.map(c => c.id))
 
@@ -47,11 +57,21 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 
+  // Re-renderiza de tempos em tempos pra que as concluídas "expirem" (sumam
+  // após 24h) sem depender de recarregar a página.
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   )
 
   const filteredTarefas = tarefas.filter(t => {
+    // Concluídas há mais de 24h somem do board (continuam nos dados/Resumo)
+    if (concluidaExpirada(t)) return false
     if (filtros.projeto && t.projetoId !== filtros.projeto) return false
     if (filtros.time && t.time !== filtros.time) return false
     if (filtros.status && t.status !== filtros.status) return false

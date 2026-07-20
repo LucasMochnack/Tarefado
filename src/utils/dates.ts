@@ -79,6 +79,14 @@ export function todayISO(): string {
   return new Date().toISOString()
 }
 
+/** Horas decorridas desde um timestamp ISO. Sem data válida → Infinity. */
+export function horasDesde(iso?: string): number {
+  if (!iso) return Infinity
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return Infinity
+  return (Date.now() - t) / 3_600_000
+}
+
 export function addDaysISO(days: number): string {
   return addDays(new Date(), days).toISOString()
 }
