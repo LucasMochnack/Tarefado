@@ -110,7 +110,9 @@ export function scoreToNivel(score: number): NivelPrioridade {
 }
 
 export function calcularProgressoProjeto(tarefas: Tarefa[], projetoId: string): number {
-  const tarefasDoProjeto = tarefas.filter(t => t.projetoId === projetoId)
+  const tarefasDoProjeto = tarefas.filter(
+    t => t.projetoId === projetoId || (t.projetosExtra?.includes(projetoId) ?? false)
+  )
   if (tarefasDoProjeto.length === 0) return 0
   const concluidas = tarefasDoProjeto.filter(t => t.status === 'concluido').length
   return Math.round((concluidas / tarefasDoProjeto.length) * 100)

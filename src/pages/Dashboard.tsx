@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
+import { projetosDaTarefa } from '@/utils/projetoFilter'
 
 const TIME_COLORS: Record<Time, string> = {
   'b2c': '#8b5cf6',
@@ -41,7 +42,9 @@ export function Dashboard() {
     ? todosProjetos.filter(p => projetosPermitidos.includes(p.id))
     : todosProjetos
   const porTime = timesPermitidos ? todasTarefas.filter(t => timesPermitidos.includes(t.time)) : todasTarefas
-  const tarefas = projetosPermitidos ? porTime.filter(t => projetosPermitidos.includes(t.projetoId)) : porTime
+  const tarefas = projetosPermitidos
+    ? porTime.filter(t => projetosDaTarefa(t).some(p => projetosPermitidos.includes(p)))
+    : porTime
   const navigate = useNavigate()
   const [selectedTarefa, setSelectedTarefa] = useState<Tarefa | null>(null)
 

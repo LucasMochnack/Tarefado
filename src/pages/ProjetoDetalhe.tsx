@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
 import { formatDate, isOverdue, prazoLabel } from '@/utils/dates'
+import { tarefaNoProjeto } from '@/utils/projetoFilter'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -38,7 +39,7 @@ export function ProjetoDetalhe() {
     )
   }
 
-  const tarefasProjeto = tarefas.filter(t => t.projetoId === id)
+  const tarefasProjeto = tarefas.filter(t => tarefaNoProjeto(t, id!))
   const filteredTarefas = statusFilter ? tarefasProjeto.filter(t => t.status === statusFilter) : tarefasProjeto
 
   const pendentes = tarefasProjeto.filter(t => t.status === 'a-fazer').length

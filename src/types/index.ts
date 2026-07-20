@@ -32,7 +32,8 @@ export interface Tarefa {
   prioridade: NivelPrioridade
   prazo: string
   responsavel: string
-  projetoId: string
+  projetoId: string          // projeto principal (home, usado no score)
+  projetosExtra?: string[]   // projetos adicionais em que a MESMA tarefa aparece
   time: Time
   tags: string[]
   checklist: ChecklistItem[]

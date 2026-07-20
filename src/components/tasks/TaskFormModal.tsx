@@ -82,6 +82,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
     responsavel: '',
     time: timeDefault as Time,
     projetoId: projetoSelecionado || '',
+    projetosExtra: [] as string[],
     tags: '',
   })
 
@@ -101,6 +102,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         responsavel: tarefa.responsavel,
         time: tarefa.time,
         projetoId: tarefa.projetoId || '',
+        projetosExtra: tarefa.projetosExtra ?? [],
         tags: tarefa.tags.join(', '),
       })
       setChecklist(tarefa.checklist.map(c => ({ ...c })))
@@ -115,6 +117,7 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
         responsavel: '',
         time: timeDefault,
         projetoId: projetoSelecionado || '',
+        projetosExtra: [],
         tags: '',
       })
       setChecklist([])
@@ -137,8 +140,13 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
+    // "Também aparece em": remove o próprio principal e vazios; undefined se vazio
+    const projetosExtra = Array.from(
+      new Set(form.projetosExtra.filter(id => id && id !== form.projetoId))
+    )
     const data = {
       ...form,
+      projetosExtra: projetosExtra.length ? projetosExtra : undefined,
       prazo: new Date(form.prazo).toISOString(),
       horaAgenda: form.horaAgenda || undefined,
       tags,
@@ -283,6 +291,39 @@ export function TaskFormModal({ open, onOpenChange, tarefa, defaultStatus, defau
                 />
               </Field>
             </div>
+
+            {/* Também aparece em (mesma tarefa em vários projetos) */}
+            {projetosDisponiveis.filter(p => p.id !== form.projetoId).length > 0 && (
+              <Field label="Também aparece em">
+                <div className="flex flex-wrap gap-1.5">
+                  {projetosDisponiveis.filter(p => p.id !== form.projetoId).map(p => {
+                    const ativo = form.projetosExtra.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          projetosExtra: ativo
+                            ? f.projetosExtra.filter(id => id !== p.id)
+                            : [...f.projetosExtra, p.id],
+                        }))}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors inline-flex items-center gap-1.5',
+                          ativo
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600'
+                        )}
+                      >
+                        <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/20" style={{ backgroundColor: p.cor }} />
+                        {p.nome}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">A mesma tarefa aparece nesses projetos, com o mesmo status e prioridade.</p>
+              </Field>
+            )}
 
             {/* Subitens / Checklist */}
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-4 space-y-3">

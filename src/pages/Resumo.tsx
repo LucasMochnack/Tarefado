@@ -7,7 +7,7 @@ import { Tarefa, StatusTarefa } from '@/types'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { usePermissoes } from '@/hooks/usePermissoes'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
-import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
+import { aplicarFiltroProjeto, projetosDaTarefa } from '@/utils/projetoFilter'
 import { cn } from '@/lib/utils'
 
 const DIAS_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -34,6 +34,15 @@ export function Resumo() {
 
   const projMap = (id: string) => projetos.find(p => p.id === id) ?? SEM_PROJETO
 
+  // Sob quais projetos a tarefa deve aparecer no Resumo (uma tarefa pode estar em vários).
+  const ocultos = new Set(projetos.filter(p => p.ocultarEmTodos).map(p => p.id))
+  const podeVerProj = (id: string) => !projetosPermitidos || projetosPermitidos.includes(id)
+  const chavesProjeto = (t: Tarefa): string[] => {
+    if (projetoSelecionado) return [projetoSelecionado]
+    const ps = projetosDaTarefa(t).filter(id => !ocultos.has(id) && podeVerProj(id))
+    return ps.length ? ps : ['']
+  }
+
   const inicioSemana = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 })
   const dias = Array.from({ length: 7 }, (_, i) => addDays(inicioSemana, i))
   const fimSemana = dias[6]
@@ -51,9 +60,10 @@ export function Resumo() {
   const gruposDoDia = (dia: Date) => {
     const grupos = new Map<string, Tarefa[]>()
     for (const t of tarefasDoDia(dia)) {
-      const key = t.projetoId || ''
-      if (!grupos.has(key)) grupos.set(key, [])
-      grupos.get(key)!.push(t)
+      for (const key of chavesProjeto(t)) {
+        if (!grupos.has(key)) grupos.set(key, [])
+        grupos.get(key)!.push(t)
+      }
     }
     return [...grupos.entries()]
       .map(([projId, ts]) => ({

@@ -10,7 +10,7 @@ import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { TaskDetailsDrawer } from '@/components/tasks/TaskDetailsDrawer'
 import { isOverdue, daysSinceUpdate, horasDesde } from '@/utils/dates'
-import { aplicarFiltroProjeto } from '@/utils/projetoFilter'
+import { aplicarFiltroProjeto, tarefaNoProjeto } from '@/utils/projetoFilter'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import toast from 'react-hot-toast'
 
@@ -72,7 +72,7 @@ export function KanbanBoard({ filtros }: KanbanBoardProps) {
   const filteredTarefas = tarefas.filter(t => {
     // Concluídas há mais de 24h somem do board (continuam nos dados/Resumo)
     if (concluidaExpirada(t)) return false
-    if (filtros.projeto && t.projetoId !== filtros.projeto) return false
+    if (filtros.projeto && !tarefaNoProjeto(t, filtros.projeto)) return false
     if (filtros.time && t.time !== filtros.time) return false
     if (filtros.status && t.status !== filtros.status) return false
     if (filtros.prioridade && t.nivelPrioridade !== filtros.prioridade) return false

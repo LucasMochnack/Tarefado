@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, ChevronRight, Calendar, CheckCircle2, Clock } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
+import { tarefaNoProjeto } from '@/utils/projetoFilter'
 import { Projeto, QuadranteEisenhower } from '@/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { VoiceInputButton } from '@/components/shared/VoiceInputButton'
@@ -53,7 +54,7 @@ export function Projetos() {
   const navigate = useNavigate()
   const [projectOpen, setProjectOpen] = useState(false)
 
-  const tarefasPorProjeto = (projetoId: string) => tarefas.filter(t => t.projetoId === projetoId)
+  const tarefasPorProjeto = (projetoId: string) => tarefas.filter(t => tarefaNoProjeto(t, projetoId))
 
   return (
     <div className="p-6 space-y-5 max-w-screen-2xl mx-auto">

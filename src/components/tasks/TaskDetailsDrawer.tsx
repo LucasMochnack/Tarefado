@@ -503,6 +503,38 @@ export function TaskDetailsDrawer({ tarefa: tarefaProp, onClose }: TaskDetailsDr
                     />
                   </span>
                 </MetaItem>
+                {projetos.filter(p => (!projetosPermitidos || projetosPermitidos.includes(p.id)) && p.id !== tarefa.projetoId).length > 0 && (
+                  <MetaItem icon={Folder} label="Também aparece em">
+                    <div className="flex flex-wrap gap-1.5">
+                      {projetos
+                        .filter(p => (!projetosPermitidos || projetosPermitidos.includes(p.id)) && p.id !== tarefa.projetoId)
+                        .map(p => {
+                          const extras = tarefa.projetosExtra ?? []
+                          const ativo = extras.includes(p.id)
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                const novos = (ativo ? extras.filter(x => x !== p.id) : [...extras, p.id])
+                                  .filter(x => x && x !== tarefa.projetoId)
+                                save({ projetosExtra: novos.length ? Array.from(new Set(novos)) : undefined })
+                              }}
+                              className={cn(
+                                'px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors inline-flex items-center gap-1',
+                                ativo
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600'
+                              )}
+                            >
+                              <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 dark:ring-white/20" style={{ backgroundColor: p.cor }} />
+                              {p.nome}
+                            </button>
+                          )
+                        })}
+                    </div>
+                  </MetaItem>
+                )}
                 <MetaItem icon={Clock} label="Atualizado">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{formatRelative(tarefa.ultimaAtualizacao)}</span>
                 </MetaItem>

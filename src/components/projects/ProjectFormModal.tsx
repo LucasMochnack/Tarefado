@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, Trash2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { Projeto, QuadranteEisenhower, StatusProjeto, Time } from '@/types'
+import { tarefaNoProjeto } from '@/utils/projetoFilter'
 import { addDaysISO } from '@/utils/dates'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import toast from 'react-hot-toast'
@@ -21,7 +22,7 @@ export function ProjectFormModal({ open, onOpenChange, projeto }: ProjectFormMod
   const isEdit = !!projeto
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const qtdTarefas = projeto ? tarefas.filter(t => t.projetoId === projeto.id).length : 0
+  const qtdTarefas = projeto ? tarefas.filter(t => tarefaNoProjeto(t, projeto.id)).length : 0
 
   const handleDelete = () => {
     if (!projeto) return

@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { TimeBadge } from '@/components/shared/TimeBadge'
 import { isOverdue, prazoLabel } from '@/utils/dates'
+import { projetosDaTarefa } from '@/utils/projetoFilter'
 import { Calendar, MessageSquare, CheckSquare, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserAvatarPicker } from '@/components/shared/UserAvatarPicker'
@@ -28,11 +29,16 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
-  const projeto = useStore(s => s.projetos.find(p => p.id === tarefa.projetoId))
+  const projetos = useStore(s => s.projetos)
+  // Todos os projetos da tarefa (principal + extras); a mesma tarefa pode estar em vários
+  const projetosDaCard = projetosDaTarefa(tarefa)
+    .map(id => projetos.find(p => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+  const projetoPrincipal = projetos.find(p => p.id === tarefa.projetoId)
   const overdue = isOverdue(tarefa.prazo) && tarefa.status !== 'concluido'
   const checkDone = tarefa.checklist.filter(c => c.concluido).length
-  // Cor da barra: do projeto (mais relevante) ou, sem projeto, do time
-  const accent = projeto?.cor ?? TEAM_ACCENT[tarefa.time] ?? TEAM_ACCENT.geral
+  // Cor da barra: do projeto principal (mais relevante) ou, sem projeto, do time
+  const accent = projetoPrincipal?.cor ?? TEAM_ACCENT[tarefa.time] ?? TEAM_ACCENT.geral
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging } = useSortable({ id: tarefa.id })
 
@@ -83,12 +89,25 @@ export function KanbanCard({ tarefa, onClick, isDragging }: KanbanCardProps) {
         {tarefa.titulo}
       </h3>
 
-      {/* Projeto */}
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
-          {projeto ? projeto.nome : 'Sem projeto'}
-        </span>
+      {/* Projeto(s) — a mesma tarefa pode aparecer em mais de um */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+        {projetosDaCard.length === 0 ? (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">Sem projeto</span>
+          </span>
+        ) : (
+          projetosDaCard.map(p => (
+            <span
+              key={p.id}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 max-w-full"
+              title={p.nome}
+            >
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.cor }} />
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">{p.nome}</span>
+            </span>
+          ))
+        )}
       </div>
 
       {/* Tags */}

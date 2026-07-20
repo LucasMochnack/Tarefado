@@ -11,6 +11,7 @@ import { PriorityBadge, ScoreBadge } from '@/components/shared/PriorityBadge'
 import { StatCard } from '@/components/shared/StatCard'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { isOverdue, isDueToday, isDueTomorrow, daysSinceUpdate, prazoLabel, daysUntilDue } from '@/utils/dates'
+import { tarefaNoProjeto } from '@/utils/projetoFilter'
 import { RESPONSAVEIS } from '@/data/mockData'
 import { cn } from '@/lib/utils'
 import { usePermissoes } from '@/hooks/usePermissoes'
@@ -59,7 +60,7 @@ export function TimeDetalhe() {
   const criticas = timeTarefas.filter(t => t.nivelPrioridade === 'critica' && t.status !== 'concluido').length
 
   const filteredTarefas = timeTarefas.filter(t => {
-    if (filtros.projeto && t.projetoId !== filtros.projeto) return false
+    if (filtros.projeto && !tarefaNoProjeto(t, filtros.projeto)) return false
     if (filtros.status && t.status !== filtros.status) return false
     if (filtros.prioridade && t.nivelPrioridade !== filtros.prioridade) return false
     if (filtros.responsavel && t.responsavel !== filtros.responsavel) return false

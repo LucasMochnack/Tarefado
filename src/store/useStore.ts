@@ -361,8 +361,15 @@ export const useStore = create<AppStore>()(
       deleteProjeto: (id) => {
         set(state => ({
           projetos: state.projetos.filter(p => p.id !== id),
-          // Mantém as tarefas — apenas desvincula do projeto (não apaga dados do usuário)
-          tarefas: state.tarefas.map(t => t.projetoId === id ? { ...t, projetoId: '' } : t),
+          // Mantém as tarefas — apenas desvincula do projeto (principal e extras)
+          tarefas: state.tarefas.map(t => {
+            const extras = t.projetosExtra?.filter(pid => pid !== id)
+            return {
+              ...t,
+              projetoId: t.projetoId === id ? '' : t.projetoId,
+              projetosExtra: extras && extras.length ? extras : undefined,
+            }
+          }),
           // Se o projeto excluído estava filtrado, volta para "Todos os projetos"
           projetoSelecionado: state.projetoSelecionado === id ? null : state.projetoSelecionado,
         }))
