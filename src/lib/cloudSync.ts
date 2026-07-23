@@ -8,6 +8,7 @@ const TABELAS = {
   projetos: 'projetos',
   tarefasRecorrentes: 'tarefas_recorrentes',
   usuarios: 'usuarios',
+  anotacoes: 'anotacoes',
 } as const
 
 type StoreKey = keyof typeof TABELAS
@@ -25,6 +26,14 @@ function stable(v: unknown): string {
 // Último estado sincronizado (id -> JSON canônico) para calcular diffs / suprimir eco
 const snapshot: Record<StoreKey, Map<string, string>> = {
   tarefas: new Map(), projetos: new Map(), tarefasRecorrentes: new Map(), usuarios: new Map(),
+  anotacoes: new Map(),
+}
+
+// Tabela ainda não criada no Supabase → degrada pra local em vez de quebrar o sync
+function tabelaInexistente(error: any): boolean {
+  const s = `${error?.code || ''} ${error?.message || ''}`.toLowerCase()
+  return s.includes('42p01') || s.includes('pgrst205')
+    || s.includes('does not exist') || s.includes('could not find the table')
 }
 
 let iniciado = false
@@ -50,20 +59,27 @@ export async function puxarDaNuvem(): Promise<{ vazio: boolean }> {
     const resultados = await Promise.all(CHAVES.map(k => supabase!.from(TABELAS[k]).select('data')))
     let total = 0
     const patch: Partial<Record<StoreKey, Item[]>> = {}
+    const okKeys: StoreKey[] = []
     CHAVES.forEach((k, i) => {
       const { data, error } = resultados[i]
-      if (error) throw error
+      if (error) {
+        // Tabela ainda não existe → ignora essa (mantém local); outros erros sobem
+        if (tabelaInexistente(error)) {
+          console.warn(`[cloudSync] tabela "${TABELAS[k]}" ausente no Supabase — usando só local`)
+          return
+        }
+        throw error
+      }
       const itens = (data ?? []).map((r: any) => r.data as Item)
       total += itens.length
       patch[k] = itens
+      okKeys.push(k)
     })
-    if (total > 0) {
-      useStore.setState(patch as any)
-      CHAVES.forEach(k => setSnapshot(k, patch[k] ?? []))
-      return { vazio: false }
-    }
-    CHAVES.forEach(k => setSnapshot(k, []))
-    return { vazio: true }
+    // Só sobrescreve o local se a nuvem tem algo (evita apagar o local na 1ª migração).
+    // Tabelas ausentes ficam fora do patch e do snapshot — o local delas é preservado.
+    if (total > 0) useStore.setState(patch as any)
+    okKeys.forEach(k => setSnapshot(k, patch[k] ?? []))
+    return { vazio: total === 0 }
   } finally {
     puxando = false
   }
@@ -209,5 +225,5 @@ export async function pararSync() {
   iniciado = false
   sincronizadoOk = false
   // Zera os dados em memória para o próximo login não ver nada do usuário anterior
-  useStore.setState({ tarefas: [], projetos: [], tarefasRecorrentes: [], usuarios: [] } as any)
+  useStore.setState({ tarefas: [], projetos: [], tarefasRecorrentes: [], usuarios: [], anotacoes: [] } as any)
 }

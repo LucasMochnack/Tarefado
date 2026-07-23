@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, ListTodo, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange, GripVertical
+  Kanban, Target, StickyNote, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange, GripVertical
 } from 'lucide-react'
 import {
   DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors,
@@ -66,9 +66,9 @@ function SortableProjetoRow({ p, ativo, onSelect, onEdit }: {
 }
 
 const navItems = [
-  { to: '/tarefas', icon: ListTodo, label: 'Tarefas' },
   { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/prioridades', icon: Target, label: 'Prioridades' },
+  { to: '/anotacoes', icon: StickyNote, label: 'Anotações' },
   { to: '/resumo', icon: CalendarRange, label: 'Resumo' },
 ]
 
@@ -117,8 +117,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const selecionarProjeto = (id: string | null) => {
     setProjetoSelecionado(id)
-    // Se estiver fora das telas de tarefas, leva para a lista filtrada
-    if (location.pathname.startsWith('/configuracoes')) navigate('/tarefas')
+    // Se estiver nas Configurações, leva para o quadro filtrado
+    if (location.pathname.startsWith('/configuracoes')) navigate('/kanban')
   }
 
   const projItemClass = (ativo: boolean) => cn(

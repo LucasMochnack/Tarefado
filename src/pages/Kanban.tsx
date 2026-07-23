@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Filter, X, RefreshCw, Plus } from 'lucide-react'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { FiltrosTarefa, StatusTarefa, NivelPrioridade, Time } from '@/types'
@@ -24,6 +25,13 @@ export function Kanban() {
   const [taskOpen, setTaskOpen] = useState(false)
   const [filtros, setFiltros] = useState<FiltrosTarefa>({})
   const [showFilters, setShowFilters] = useState(false)
+  const [searchParams] = useSearchParams()
+
+  // Busca vinda do header (?busca=) semeia o filtro do quadro
+  const buscaQuery = searchParams.get('busca') || ''
+  useEffect(() => {
+    if (buscaQuery) setFiltros(f => ({ ...f, busca: buscaQuery }))
+  }, [buscaQuery])
 
   const hasFilters = Object.values(filtros).some(v => v !== undefined && v !== '' && v !== false)
 

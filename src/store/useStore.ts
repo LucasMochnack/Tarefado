@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { arrayMove } from '@dnd-kit/sortable'
-import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana } from '@/types'
+import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana, Anotacao } from '@/types'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { calcularScore, calcularProgressoProjeto } from '@/utils/priority'
 import { todayISO, addDaysISO } from '@/utils/dates'
@@ -61,6 +61,7 @@ interface AppStore {
   projetos: Projeto[]
   usuarios: Usuario[]
   tarefasRecorrentes: TarefaRecorrente[]
+  anotacoes: Anotacao[]
   darkMode: boolean
   autenticado: boolean
   authInicializado: boolean
@@ -90,6 +91,10 @@ interface AppStore {
   updateTarefaRecorrente: (id: string, data: Partial<TarefaRecorrente>) => void
   deleteTarefaRecorrente: (id: string) => void
   processarRecorrentes: () => void
+
+  addAnotacao: (dados: Omit<Anotacao, 'id' | 'criadoEm' | 'atualizadoEm'>) => void
+  updateAnotacao: (id: string, data: Partial<Omit<Anotacao, 'id' | 'criadoEm'>>) => void
+  deleteAnotacao: (id: string) => void
 
   addProjeto: (projeto: Omit<Projeto, 'id' | 'criadoEm' | 'atualizadoEm' | 'progresso'>) => void
   updateProjeto: (id: string, data: Partial<Projeto>) => void
@@ -127,6 +132,7 @@ export const useStore = create<AppStore>()(
       projetos: PROJETOS_INICIAIS,
       usuarios: USUARIOS_INICIAIS,
       tarefasRecorrentes: [],
+      anotacoes: [],
       darkMode: true,
       projetoSelecionado: null,
       autenticado: false,
@@ -405,6 +411,24 @@ export const useStore = create<AppStore>()(
         })
       },
 
+      addAnotacao: (dados) => {
+        const agora = todayISO()
+        const nova: Anotacao = { ...dados, id: `ano-${gerarId()}`, criadoEm: agora, atualizadoEm: agora }
+        set(state => ({ anotacoes: [nova, ...state.anotacoes] }))
+      },
+
+      updateAnotacao: (id, data) => {
+        set(state => ({
+          anotacoes: state.anotacoes.map(a =>
+            a.id === id ? { ...a, ...data, atualizadoEm: todayISO() } : a
+          ),
+        }))
+      },
+
+      deleteAnotacao: (id) => {
+        set(state => ({ anotacoes: state.anotacoes.filter(a => a.id !== id) }))
+      },
+
       // Garante que o projeto "Pessoais" exista (mesmo em localStorage antigo)
       garantirProjetosPadrao: () => {
         set(state => state.projetos.some(p => p.id === PROJETO_PESSOAIS.id)
@@ -437,6 +461,7 @@ export const useStore = create<AppStore>()(
         projetos: state.projetos,
         usuarios: state.usuarios,
         tarefasRecorrentes: state.tarefasRecorrentes,
+        anotacoes: state.anotacoes,
         darkMode: state.darkMode,
       }),
     }

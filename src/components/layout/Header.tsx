@@ -16,7 +16,7 @@ export function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (search.trim()) navigate(`/tarefas?busca=${encodeURIComponent(search.trim())}`)
+    if (search.trim()) navigate(`/kanban?busca=${encodeURIComponent(search.trim())}`)
   }
 
   return (

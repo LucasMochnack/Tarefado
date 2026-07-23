@@ -54,6 +54,15 @@ export interface Tarefa {
   motivoPrioridade: string
 }
 
+export interface Anotacao {
+  id: string
+  projetoId: string   // '' = anotação geral (sem projeto específico)
+  titulo: string
+  conteudo: string
+  criadoEm: string
+  atualizadoEm: string
+}
+
 export interface Projeto {
   id: string
   nome: string
