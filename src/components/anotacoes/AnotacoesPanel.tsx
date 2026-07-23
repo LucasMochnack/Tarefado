@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { StickyNote, Plus, Pencil, Trash2, Save } from 'lucide-react'
+import { StickyNote, Plus, Pencil, Trash2, Save, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { formatRelative } from '@/utils/dates'
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
  * (ou todas, em "Todos os projetos"). Usado ao lado do Kanban.
  */
 export function AnotacoesPanel() {
-  const { anotacoes, projetos, projetoSelecionado, addAnotacao, updateAnotacao, deleteAnotacao } = useStore()
+  const { anotacoes, projetos, projetoSelecionado, addAnotacao, updateAnotacao, deleteAnotacao, anotacoesPainelAberto, toggleAnotacoesPainel } = useStore()
   const projetosPermitidos = useProjetosPermitidos()
 
   const podeVer = (id: string) => id === '' || !projetosPermitidos || projetosPermitidos.includes(id)
@@ -29,6 +29,28 @@ export function AnotacoesPanel() {
   const [mode, setMode] = useState<{ tipo: 'none' } | { tipo: 'nova' } | { tipo: 'edit'; id: string }>({ tipo: 'none' })
   const [form, setForm] = useState({ titulo: '', conteudo: '' })
   const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  // Recolhido: faixa fininha com botão pra reabrir
+  if (!anotacoesPainelAberto) {
+    return (
+      <aside className="hidden lg:flex w-11 flex-shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+        <button
+          onClick={toggleAnotacoesPainel}
+          title="Mostrar anotações"
+          className="w-full flex flex-col items-center gap-3 py-3 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+        >
+          <ChevronLeft size={16} />
+          <span className="relative">
+            <StickyNote size={16} className="text-indigo-500" />
+            {notas.length > 0 && (
+              <span className="absolute -top-2 -right-2 text-[9px] font-bold text-white bg-indigo-600 rounded-full min-w-[14px] h-[14px] leading-[14px] text-center px-0.5">{notas.length}</span>
+            )}
+          </span>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-semibold tracking-wide">Anotações</span>
+        </button>
+      </aside>
+    )
+  }
 
   const abrirNova = () => { setForm({ titulo: '', conteudo: '' }); setMode({ tipo: 'nova' }) }
   const abrirEdit = (id: string) => {
@@ -87,11 +109,16 @@ export function AnotacoesPanel() {
             <span className="text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-1.5">{notas.length}</span>
           )}
         </div>
-        {mode.tipo !== 'nova' && (
-          <button onClick={abrirNova} title="Nova anotação" className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <Plus size={16} />
+        <div className="flex items-center gap-0.5">
+          {mode.tipo !== 'nova' && (
+            <button onClick={abrirNova} title="Nova anotação" className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <Plus size={16} />
+            </button>
+          )}
+          <button onClick={toggleAnotacoesPainel} title="Recolher painel" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <ChevronRight size={16} />
           </button>
-        )}
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5">

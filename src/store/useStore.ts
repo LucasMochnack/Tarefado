@@ -63,6 +63,7 @@ interface AppStore {
   tarefasRecorrentes: TarefaRecorrente[]
   anotacoes: Anotacao[]
   darkMode: boolean
+  anotacoesPainelAberto: boolean
   autenticado: boolean
   authInicializado: boolean
   usuarioNome: string
@@ -102,6 +103,7 @@ interface AppStore {
   reordenarProjetos: (orderedIds: string[]) => void
 
   toggleDarkMode: () => void
+  toggleAnotacoesPainel: () => void
 }
 
 function gerarId(): string {
@@ -134,6 +136,7 @@ export const useStore = create<AppStore>()(
       tarefasRecorrentes: [],
       anotacoes: [],
       darkMode: true,
+      anotacoesPainelAberto: true,
       projetoSelecionado: null,
       autenticado: false,
       authInicializado: false,
@@ -394,6 +397,8 @@ export const useStore = create<AppStore>()(
 
       toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
 
+      toggleAnotacoesPainel: () => set(state => ({ anotacoesPainelAberto: !state.anotacoesPainelAberto })),
+
       setProjetoSelecionado: (id) => set({ projetoSelecionado: id }),
 
       // Reflete a sessão do Supabase Auth no estado do app (chamado pelo listener de auth)
@@ -463,6 +468,7 @@ export const useStore = create<AppStore>()(
         tarefasRecorrentes: state.tarefasRecorrentes,
         anotacoes: state.anotacoes,
         darkMode: state.darkMode,
+        anotacoesPainelAberto: state.anotacoesPainelAberto,
       }),
     }
   )
