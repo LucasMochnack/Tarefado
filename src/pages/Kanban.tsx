@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Filter, X, RefreshCw, Plus } from 'lucide-react'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
+import { AnotacoesPanel } from '@/components/anotacoes/AnotacoesPanel'
 import { FiltrosTarefa, StatusTarefa, NivelPrioridade, Time } from '@/types'
 import { useStore } from '@/store/useStore'
 import { TaskFormModal } from '@/components/tasks/TaskFormModal'
@@ -125,9 +126,12 @@ export function Kanban() {
         </div>
       )}
 
-      {/* Board */}
-      <div className="flex-1 overflow-x-auto p-6 min-h-0">
-        <KanbanBoard filtros={filtros} />
+      {/* Board + painel de anotações do projeto */}
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 overflow-x-auto p-6 min-h-0">
+          <KanbanBoard filtros={filtros} />
+        </div>
+        <AnotacoesPanel />
       </div>
 
       <TaskFormModal open={taskOpen} onOpenChange={setTaskOpen} />
