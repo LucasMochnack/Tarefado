@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react'
 import { StickyNote, Plus, Pencil, Trash2, Save, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
@@ -163,11 +163,27 @@ function NotaCard({ a, info, mostrarProjeto, onEditar, onExcluir }: {
   const [temOverflow, setTemOverflow] = useState(false)
   const [confirmar, setConfirmar] = useState(false)
   const ref = useRef<HTMLParagraphElement>(null)
+  const expandidoRef = useRef(expandido)
+  expandidoRef.current = expandido
 
-  useLayoutEffect(() => {
+  // Mede se o texto está cortado (só faz sentido com o clamp aplicado = não-expandido)
+  const medir = useCallback(() => {
     const el = ref.current
-    if (el && !expandido) setTemOverflow(el.scrollHeight > el.clientHeight + 2)
-  }, [a.conteudo, expandido])
+    if (el && !expandidoRef.current) setTemOverflow(el.scrollHeight > el.clientHeight + 2)
+  }, [])
+
+  // Medição imediata quando muda o conteúdo ou expande/recolhe (sem flicker)
+  useLayoutEffect(() => { medir() }, [a.conteudo, expandido, medir])
+
+  // Robusto a resize / painel aparecer-sumir / reflow: re-mede quando o tamanho muda
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(() => medir())
+    ro.observe(el)
+    window.addEventListener('resize', medir)
+    return () => { ro.disconnect(); window.removeEventListener('resize', medir) }
+  }, [medir])
 
   return (
     <div className="group relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
