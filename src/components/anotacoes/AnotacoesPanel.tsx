@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { StickyNote, Plus, Pencil, Trash2, Save, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useState, useRef, useLayoutEffect } from 'react'
+import { StickyNote, Plus, Pencil, Trash2, Save, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
+import { Anotacao } from '@/types'
 import { formatRelative } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -28,7 +29,6 @@ export function AnotacoesPanel() {
 
   const [mode, setMode] = useState<{ tipo: 'none' } | { tipo: 'nova' } | { tipo: 'edit'; id: string }>({ tipo: 'none' })
   const [form, setForm] = useState({ titulo: '', conteudo: '' })
-  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   // Recolhido: faixa fininha com botão pra reabrir
   if (!anotacoesPainelAberto) {
@@ -131,45 +131,93 @@ export function AnotacoesPanel() {
             <button onClick={abrirNova} className="text-indigo-600 dark:text-indigo-400 text-xs font-medium hover:underline">Criar a primeira</button>
           </div>
         ) : (
-          notas.map(a => {
-            if (mode.tipo === 'edit' && mode.id === a.id) return <div key={a.id}>{Editor}</div>
-            const info = projInfo(a.projetoId)
-            return (
-              <div key={a.id} className="group relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug break-words">{a.titulo}</h4>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button onClick={() => abrirEdit(a.id)} title="Editar" className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600"><Pencil size={12} /></button>
-                    <button onClick={() => setConfirmId(a.id)} title="Excluir" className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600"><Trash2 size={12} /></button>
-                  </div>
-                </div>
-                {a.conteudo && (
-                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words line-clamp-[12]">{a.conteudo}</p>
-                )}
-                <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  {!projetoSelecionado ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 min-w-0">
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: info.cor }} />
-                      <span className="truncate">{info.nome}</span>
-                    </span>
-                  ) : <span />}
-                  <span className="text-[10px] text-slate-400 flex-shrink-0">{formatRelative(a.atualizadoEm)}</span>
-                </div>
-
-                {confirmId === a.id && (
-                  <div className="absolute inset-0 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center gap-2 p-3 text-center">
-                    <p className="text-xs text-slate-700 dark:text-slate-200">Excluir esta anotação?</p>
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => setConfirmId(null)} className="px-2.5 py-1 rounded-lg text-[11px] text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
-                      <button onClick={() => { deleteAnotacao(a.id); setConfirmId(null); toast.success('Anotação excluída') }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] bg-red-600 text-white hover:bg-red-700"><Trash2 size={11} /> Excluir</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })
+          notas.map(a =>
+            mode.tipo === 'edit' && mode.id === a.id
+              ? <div key={a.id}>{Editor}</div>
+              : (
+                <NotaCard
+                  key={a.id}
+                  a={a}
+                  info={projInfo(a.projetoId)}
+                  mostrarProjeto={!projetoSelecionado}
+                  onEditar={() => abrirEdit(a.id)}
+                  onExcluir={() => { deleteAnotacao(a.id); toast.success('Anotação excluída') }}
+                />
+              )
+          )
         )}
       </div>
     </aside>
+  )
+}
+
+/** Card de anotação com "ver mais/ver menos" quando o texto é cortado. */
+function NotaCard({ a, info, mostrarProjeto, onEditar, onExcluir }: {
+  a: Anotacao
+  info: { nome: string; cor: string }
+  mostrarProjeto: boolean
+  onEditar: () => void
+  onExcluir: () => void
+}) {
+  const [expandido, setExpandido] = useState(false)
+  const [temOverflow, setTemOverflow] = useState(false)
+  const [confirmar, setConfirmar] = useState(false)
+  const ref = useRef<HTMLParagraphElement>(null)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (el && !expandido) setTemOverflow(el.scrollHeight > el.clientHeight + 2)
+  }, [a.conteudo, expandido])
+
+  return (
+    <div className="group relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug break-words">{a.titulo}</h4>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button onClick={onEditar} title="Editar" className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600"><Pencil size={12} /></button>
+          <button onClick={() => setConfirmar(true)} title="Excluir" className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600"><Trash2 size={12} /></button>
+        </div>
+      </div>
+
+      {a.conteudo && (
+        <p
+          ref={ref}
+          className={cn(
+            'mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words',
+            !expandido && 'line-clamp-[10]'
+          )}
+        >
+          {a.conteudo}
+        </p>
+      )}
+      {(temOverflow || expandido) && (
+        <button
+          onClick={() => setExpandido(v => !v)}
+          className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+        >
+          {expandido ? <>Ver menos <ChevronUp size={12} /></> : <>Ver mais <ChevronDown size={12} /></>}
+        </button>
+      )}
+
+      <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+        {mostrarProjeto ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: info.cor }} />
+            <span className="truncate">{info.nome}</span>
+          </span>
+        ) : <span />}
+        <span className="text-[10px] text-slate-400 flex-shrink-0">{formatRelative(a.atualizadoEm)}</span>
+      </div>
+
+      {confirmar && (
+        <div className="absolute inset-0 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center gap-2 p-3 text-center">
+          <p className="text-xs text-slate-700 dark:text-slate-200">Excluir esta anotação?</p>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setConfirmar(false)} className="px-2.5 py-1 rounded-lg text-[11px] text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+            <button onClick={() => { onExcluir(); setConfirmar(false) }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] bg-red-600 text-white hover:bg-red-700"><Trash2 size={11} /> Excluir</button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
