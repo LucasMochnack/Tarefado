@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Kanban, Target, StickyNote, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange, GripVertical
+  Kanban, Target, StickyNote, LayoutGrid, Settings, ChevronRight, Check, ChevronLeft, Plus, Folder, Layers, Pencil, CalendarRange, GripVertical
 } from 'lucide-react'
 import {
   DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors,
@@ -69,6 +69,7 @@ const navItems = [
   { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/prioridades', icon: Target, label: 'Prioridades' },
   { to: '/anotacoes', icon: StickyNote, label: 'Anotações' },
+  { to: '/canvas', icon: LayoutGrid, label: 'Canvas' },
   { to: '/resumo', icon: CalendarRange, label: 'Resumo' },
 ]
 

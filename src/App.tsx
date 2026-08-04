@@ -5,6 +5,7 @@ import { Login } from '@/pages/Login'
 import { Kanban } from '@/pages/Kanban'
 import { Prioridades } from '@/pages/Prioridades'
 import { Anotacoes } from '@/pages/Anotacoes'
+import { CanvasProjeto } from '@/pages/CanvasProjeto'
 import { Resumo } from '@/pages/Resumo'
 import { Configuracoes } from '@/pages/Configuracoes'
 import { useStore } from '@/store/useStore'
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/prioridades" element={<Prioridades />} />
           <Route path="/anotacoes" element={<Anotacoes />} />
+          <Route path="/canvas" element={<CanvasProjeto />} />
           <Route path="/resumo" element={<Resumo />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* Rotas antigas redirecionam para o Kanban */}

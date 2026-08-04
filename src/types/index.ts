@@ -63,6 +63,25 @@ export interface Anotacao {
   atualizadoEm: string
 }
 
+/** Project Model Canvas (modelo FGV) — um por projeto, blocos de texto livre. */
+export interface CanvasProjeto {
+  objetivo?: string          // topo, largura total
+  justificativas?: string    // Por quê? (passado)
+  objetivoSmart?: string     // Por quê?
+  beneficios?: string        // Por quê? (futuro)
+  produto?: string           // O quê?
+  requisitos?: string        // O quê?
+  fatoresExternos?: string   // Quem?
+  equipe?: string            // Quem?
+  premissas?: string         // Como?
+  entregas?: string          // Como? (grupo de entregas)
+  restricoes?: string        // Como?
+  riscos?: string            // Quando e quanto?
+  linhaDoTempo?: string      // Quando e quanto?
+  custos?: string            // Quando e quanto?
+  pendencias?: string        // rodapé, largura total
+}
+
 export interface Projeto {
   id: string
   nome: string
@@ -76,6 +95,7 @@ export interface Projeto {
   criadoEm: string
   atualizadoEm: string
   ocultarEmTodos?: boolean   // tarefas não aparecem na visão "Todos os projetos"
+  canvas?: CanvasProjeto     // Project Model Canvas do projeto (aba Canvas)
 }
 
 export interface TarefaRecorrente {
