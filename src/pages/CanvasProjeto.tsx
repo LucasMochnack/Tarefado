@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { LayoutGrid, Folder, Plus, Trash2, Maximize2, X, Save } from 'lucide-react'
+import { LayoutGrid, Folder, Plus, Trash2, Maximize2, X, Save, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { CanvasProjeto as CanvasData } from '@/types'
 import { canvasesDe, CampoCanvas } from '@/utils/canvas'
+import { exportarCanvasExcel } from '@/utils/exportarCanvas'
 import { formatRelative } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -199,6 +200,7 @@ export function CanvasProjeto() {
   const [canvasIdSel, setCanvasIdSel] = useState<string | null>(null)
   const [confirmDel, setConfirmDel] = useState(false)
   const [expandido, setExpandido] = useState<CampoCanvas | null>(null)
+  const [exportando, setExportando] = useState(false)
 
   // Mantém uma seleção válida: escolhe o primeiro quando troca de projeto ou o atual sai
   useEffect(() => {
@@ -216,6 +218,20 @@ export function CanvasProjeto() {
   }
 
   const blocoAberto = expandido ? BLOCOS.find(b => b.campo === expandido) ?? null : null
+
+  const exportar = async () => {
+    if (!projeto || !canvas || exportando) return
+    setExportando(true)
+    try {
+      await exportarCanvasExcel(projeto, canvas)
+      toast.success('Excel gerado — confira os downloads')
+    } catch (err) {
+      console.error('[canvas] exportar', err)
+      toast.error('Não foi possível gerar o Excel. Tente novamente.')
+    } finally {
+      setExportando(false)
+    }
+  }
 
   return (
     <div className="p-6 space-y-5 max-w-screen-2xl mx-auto">
@@ -308,6 +324,17 @@ export function CanvasProjeto() {
                   </label>
                   <NomeCanvas valor={canvas.nome} onSave={v => updateCanvas(projeto.id, canvas.id, { nome: v })} />
                 </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportar}
+                    disabled={exportando}
+                    title="Baixar este canvas em Excel (.xlsx)"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-xs font-medium transition-colors disabled:opacity-60"
+                  >
+                    {exportando
+                      ? <><Loader2 size={13} className="animate-spin" /> Gerando…</>
+                      : <><FileSpreadsheet size={13} /> Exportar Excel</>}
+                  </button>
                 <div className="relative">
                   <button
                     onClick={() => setConfirmDel(true)}
@@ -329,6 +356,7 @@ export function CanvasProjeto() {
                       </div>
                     </div>
                   )}
+                </div>
                 </div>
               </div>
 
