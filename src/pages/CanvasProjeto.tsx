@@ -53,10 +53,12 @@ function CaixaCanvas({ titulo, hint, valor, largo, onAbrir }: {
 }) {
   const texto = normalizar(valor)
   const vazio = texto.trim() === ''
+  // Arrastar a barra de rolagem não deve abrir o modal
+  const naBarra = useRef(false)
   return (
     <button
       type="button"
-      onClick={onAbrir}
+      onClick={() => { if (!naBarra.current) onAbrir(); naBarra.current = false }}
       title={`${titulo} — clique para expandir`}
       className={cn(
         'group relative flex flex-col w-full h-full text-left rounded-xl border overflow-hidden transition-all',
@@ -75,12 +77,18 @@ function CaixaCanvas({ titulo, hint, valor, largo, onAbrir }: {
         />
       </div>
       <div
+        // Rola com a roda do mouse ao passar por cima; a barra só aparece no hover
+        onMouseDown={e => { naBarra.current = e.nativeEvent.offsetX > e.currentTarget.clientWidth }}
         className={cn(
-          'flex-1 px-3 py-2.5 text-[12.5px] leading-[1.55] whitespace-pre-wrap break-words',
+          'flex-1 min-h-0 px-3 py-2.5 text-[12.5px] leading-[1.55] whitespace-pre-wrap break-words',
+          'overflow-y-auto [scrollbar-width:thin] cursor-text',
+          '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent',
+          '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent',
+          'group-hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 dark:group-hover:[&::-webkit-scrollbar-thumb]:bg-slate-600',
           vazio
             ? 'text-slate-400/70 dark:text-slate-600 italic'
             : 'text-slate-700 dark:text-slate-300',
-          largo ? 'line-clamp-4' : 'line-clamp-[9]'
+          largo ? 'max-h-[6rem]' : 'max-h-[11.9rem]'
         )}
       >
         {vazio ? hint : texto}
