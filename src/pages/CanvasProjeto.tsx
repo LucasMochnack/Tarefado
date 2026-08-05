@@ -52,38 +52,35 @@ const GRUPOS_LEITURA: { titulo: string; campos: CampoCanvas[] }[] = [
 ]
 
 /**
- * Bloco editável. A altura acompanha o conteúdo (min-height medido), então o texto
- * nunca fica com barra de rolagem interna. Salva ao sair do campo.
+ * Estado + auto-altura de um campo do canvas. Usado pelas duas apresentações
+ * (documento e grade), então a lógica delicada fica num lugar só.
  */
-function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
-  titulo: string; hint: string; valor: string; destaque?: boolean; leitura?: boolean; onSave: (v: string) => void
-}) {
-  // Normaliza CRLF: o textarea do DOM converte \r\n em \n, então guardar \r\n faria
-  // o valor controlado do React divergir do DOM em todo render.
-  const limpo = valor.includes('\r') ? valor.replace(/\r\n?/g, '\n') : valor
+function useCampoCanvas(valor: string, alturaMinima: number, onSave: (v: string) => void) {
+  // Normaliza CRLF (o textarea do DOM já converte \r\n em \n, então guardar CRLF faria
+  // o valor controlado do React divergir do DOM) e tira linhas em branco do fim,
+  // que só geram espaço morto.
+  const limpo = (valor.includes('\r') ? valor.replace(/\r\n?/g, '\n') : valor).replace(/\n+$/, '')
   const [texto, setTexto] = useState(limpo)
   const [focado, setFocado] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => { if (!focado) setTexto(limpo) }, [limpo, focado])
 
-  // Mede o conteúdo e fixa como min-height: com flex-1 o campo ainda estica pra
-  // preencher a linha da grade, mas nunca encolhe abaixo do texto.
-  // Se o elemento ainda não tem largura (fora de layout), NÃO mede — medir aí
-  // daria uma altura errada e esconderia o texto.
+  // Mede o conteúdo e fixa como min-height. Se o elemento ainda não tem largura
+  // (fora de layout), NÃO mede — daria altura errada e esconderia o texto.
   const ajustar = useCallback(() => {
     const el = ref.current
     if (!el || el.clientWidth === 0) return
     el.style.minHeight = '0px'
-    const h = el.scrollHeight
-    el.style.minHeight = `${Math.max(h, 64)}px`
-  }, [])
+    // +2px absorve arredondamento sub-pixel da altura de linha (evita 1-2px de corte)
+    const h = el.scrollHeight + 2
+    el.style.minHeight = `${Math.max(h, alturaMinima)}px`
+  }, [alturaMinima])
 
   useEffect(() => { ajustar() }, [texto, ajustar])
 
-  // Re-mede quando a LARGURA muda (o texto reflui): troca de modo, resize, sidebar.
-  // Só na largura de propósito: o callback altera a altura, então reagir a altura
-  // realimentaria o próprio observer.
+  // Re-mede só quando a LARGURA muda (o texto reflui). Reagir à altura
+  // realimentaria o observer, já que o callback altera a altura.
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -97,35 +94,98 @@ function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
     return () => { ro.disconnect(); window.removeEventListener('resize', ajustar) }
   }, [ajustar])
 
+  return {
+    ref, texto, focado, vazio: texto.trim() === '',
+    props: {
+      value: texto,
+      onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setTexto(e.target.value),
+      onFocus: () => setFocado(true),
+      onBlur: () => {
+        setFocado(false)
+        if (texto !== limpo) { onSave(texto); toast.success('Canvas salvo', { id: 'canvas-save' }) }
+      },
+      spellCheck: false,
+    },
+  }
+}
+
+/**
+ * Apresentação DOCUMENTO (modo Leitura): rótulo discreto à esquerda, texto à
+ * direita. Sem caixas — o campo parece texto corrido e só se revela ao focar.
+ */
+function BlocoDoc({ titulo, hint, valor, onSave }: {
+  titulo?: string; hint: string; valor: string; onSave: (v: string) => void
+}) {
+  const c = useCampoCanvas(valor, 34, onSave)
+  // Sem rótulo (objetivo/pendências, que já têm título próprio): ocupa a largura toda
+  if (!titulo) {
+    return (
+      <div className="group">
+        <textarea
+          ref={c.ref}
+          placeholder={hint}
+          {...c.props}
+          className={cn(
+            'w-full resize-none overflow-y-auto rounded-lg bg-transparent px-3 py-1.5 -ml-3 outline-none whitespace-pre-wrap transition-colors',
+            'text-[15px] leading-[1.75] text-slate-700 dark:text-slate-200',
+            'placeholder:text-slate-400/60 dark:placeholder:text-slate-600 placeholder:italic',
+            c.focado
+              ? 'bg-white dark:bg-slate-900 ring-2 ring-indigo-500/25'
+              : 'group-hover:bg-slate-500/5'
+          )}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="group grid gap-1 sm:grid-cols-[10.5rem_1fr] sm:gap-6 py-3 border-t border-slate-100 dark:border-slate-800/70 first:border-t-0">
+      <div className="pt-2 text-[10.5px] font-bold uppercase tracking-[0.11em] text-slate-400 dark:text-slate-500 sm:text-right leading-snug">
+        {titulo}
+      </div>
+      <textarea
+        ref={c.ref}
+        placeholder={hint}
+        {...c.props}
+        className={cn(
+          'w-full resize-none overflow-y-auto rounded-lg bg-transparent px-3 py-1.5 -mx-0.5 outline-none whitespace-pre-wrap transition-colors',
+          'text-[15px] leading-[1.75] text-slate-700 dark:text-slate-200',
+          'placeholder:text-slate-400/60 dark:placeholder:text-slate-600 placeholder:italic',
+          c.focado
+            ? 'bg-white dark:bg-slate-900 ring-2 ring-indigo-500/25'
+            : 'group-hover:bg-slate-50 dark:group-hover:bg-slate-900/50'
+        )}
+      />
+    </div>
+  )
+}
+
+/** Apresentação GRADE (canvas FGV): card com cabeçalho, igual ao Excel. */
+function BlocoGrade({ titulo, hint, valor, destaque, onSave }: {
+  titulo: string; hint: string; valor: string; destaque?: boolean; onSave: (v: string) => void
+}) {
+  const c = useCampoCanvas(valor, 64, onSave)
   return (
     <div className={cn(
       'flex flex-col rounded-xl border overflow-hidden bg-white dark:bg-slate-900 transition-colors',
-      focado
+      c.focado
         ? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/15'
         : 'border-slate-200 dark:border-slate-700',
-      destaque && !focado && 'border-indigo-300/60 dark:border-indigo-700/60'
+      destaque && !c.focado && 'border-indigo-300/60 dark:border-indigo-700/60'
     )}>
       <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider flex-shrink-0 bg-indigo-600/10 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
         {titulo}
       </div>
       <textarea
-        ref={ref}
-        value={texto}
+        ref={c.ref}
         placeholder={hint}
-        onChange={e => setTexto(e.target.value)}
-        onFocus={() => setFocado(true)}
-        onBlur={() => {
-          setFocado(false)
-          if (texto !== limpo) { onSave(texto); toast.success('Canvas salvo', { id: 'canvas-save' }) }
-        }}
+        {...c.props}
         className={cn(
           // overflow-y-auto (não hidden) é rede de segurança: se a medição falhar,
           // o texto rola — nunca fica invisível.
           'flex-1 w-full resize-none overflow-y-auto bg-transparent px-3.5 py-3 outline-none whitespace-pre-wrap',
-          'text-slate-700 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 placeholder:italic',
-          leitura ? 'text-[14.5px] leading-[1.75]' : 'text-[13px] leading-[1.6]'
+          'text-[13px] leading-[1.6] text-slate-700 dark:text-slate-200',
+          'placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 placeholder:italic'
         )}
-        spellCheck={false}
       />
     </div>
   )
@@ -190,16 +250,16 @@ export function CanvasProjeto() {
     toast.success('Canvas criado')
   }
 
-  const campo = (b: Bloco, leitura: boolean) => (
-    <BlocoEditavel
-      key={b.campo}
-      titulo={b.titulo}
-      hint={b.hint}
-      valor={canvas?.[b.campo] ?? ''}
-      destaque={b.campo === 'objetivo'}
-      leitura={leitura}
-      onSave={v => projeto && canvas && updateCanvas(projeto.id, canvas.id, { [b.campo]: v })}
-    />
+  const salvarCampo = (b: Bloco) => (v: string) => {
+    if (projeto && canvas) updateCanvas(projeto.id, canvas.id, { [b.campo]: v })
+  }
+  const doc = (b: Bloco) => (
+    <BlocoDoc key={b.campo} titulo={b.titulo} hint={b.hint}
+      valor={canvas?.[b.campo] ?? ''} onSave={salvarCampo(b)} />
+  )
+  const grade = (b: Bloco) => (
+    <BlocoGrade key={b.campo} titulo={b.titulo} hint={b.hint}
+      valor={canvas?.[b.campo] ?? ''} destaque={b.campo === 'objetivo'} onSave={salvarCampo(b)} />
   )
 
   const btnModo = (ativo: boolean) => cn(
@@ -349,31 +409,54 @@ export function CanvasProjeto() {
                   >
                     {BLOCOS.map(b => (
                       <div key={b.campo} className="xl:[grid-area:var(--a)] flex" style={{ ['--a' as string]: b.area }}>
-                        <div className="flex-1 flex flex-col">{campo(b, false)}</div>
+                        <div className="flex-1 flex flex-col">{grade(b)}</div>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                /* ── LEITURA: uma coluna na medida de leitura, agrupada pelas perguntas ── */
-                <div className="max-w-2xl space-y-7">
-                  {campo(porCampo('objetivo'), true)}
+                /* ── LEITURA: documento — rótulo à esquerda, texto à direita ── */
+                <article className="max-w-3xl">
+                  {/* Objetivo em destaque, abrindo o documento */}
+                  <div className="border-l-2 border-emerald-500/70 pl-5 mb-9">
+                    <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400 mb-1">
+                      Objetivo do Projeto
+                    </p>
+                    <BlocoDoc
+                      key="objetivo-destaque"
+                      titulo=""
+                      hint={porCampo('objetivo').hint}
+                      valor={canvas.objetivo ?? ''}
+                      onSave={salvarCampo(porCampo('objetivo'))}
+                    />
+                  </div>
 
                   {GRUPOS_LEITURA.map(g => (
-                    <section key={g.titulo} className="space-y-3">
-                      <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                    <section key={g.titulo} className="mb-9">
+                      <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-600/80 dark:text-indigo-400/80 mb-1 pb-2 border-b-2 border-indigo-500/25">
                         {g.titulo}
                       </h2>
-                      {g.campos.map(c => campo(porCampo(c), true))}
+                      {g.campos.map(c => doc(porCampo(c)))}
                     </section>
                   ))}
 
-                  {campo(porCampo('pendencias'), true)}
-                </div>
+                  <section className="rounded-xl bg-amber-50/60 dark:bg-amber-950/15 border border-amber-200/60 dark:border-amber-900/30 px-5 py-3">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-500 mb-1">
+                      Pendências — em aberto no canvas
+                    </h2>
+                    <BlocoDoc
+                      key="pendencias-rodape"
+                      titulo=""
+                      hint={porCampo('pendencias').hint}
+                      valor={canvas.pendencias ?? ''}
+                      onSave={salvarCampo(porCampo('pendencias'))}
+                    />
+                  </section>
+                </article>
               )}
 
               <p className="text-[11px] text-slate-400 italic">
-                Dica: escreva em tópicos (um por linha). Salva ao sair do campo e sincroniza na nuvem.
+                Dica: escreva em tópicos (um por linha). Clique no texto para editar — salva ao sair do campo.
               </p>
             </>
           )}
