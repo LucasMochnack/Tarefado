@@ -58,17 +58,22 @@ const GRUPOS_LEITURA: { titulo: string; campos: CampoCanvas[] }[] = [
 function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
   titulo: string; hint: string; valor: string; destaque?: boolean; leitura?: boolean; onSave: (v: string) => void
 }) {
-  const [texto, setTexto] = useState(valor)
+  // Normaliza CRLF: o textarea do DOM converte \r\n em \n, então guardar \r\n faria
+  // o valor controlado do React divergir do DOM em todo render.
+  const limpo = valor.includes('\r') ? valor.replace(/\r\n?/g, '\n') : valor
+  const [texto, setTexto] = useState(limpo)
   const [focado, setFocado] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => { if (!focado) setTexto(valor) }, [valor, focado])
+  useEffect(() => { if (!focado) setTexto(limpo) }, [limpo, focado])
 
   // Mede o conteúdo e fixa como min-height: com flex-1 o campo ainda estica pra
-  // preencher a linha da grade, mas nunca encolhe abaixo do texto (sem scroll interno).
+  // preencher a linha da grade, mas nunca encolhe abaixo do texto.
+  // Se o elemento ainda não tem largura (fora de layout), NÃO mede — medir aí
+  // daria uma altura errada e esconderia o texto.
   const ajustar = useCallback(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || el.clientWidth === 0) return
     el.style.minHeight = '0px'
     const h = el.scrollHeight
     el.style.minHeight = `${Math.max(h, 64)}px`
@@ -76,11 +81,17 @@ function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
 
   useEffect(() => { ajustar() }, [texto, ajustar])
 
-  // Re-mede quando a largura muda (texto reflui): troca de modo, resize, sidebar
+  // Re-mede quando a LARGURA muda (o texto reflui): troca de modo, resize, sidebar.
+  // Só na largura de propósito: o callback altera a altura, então reagir a altura
+  // realimentaria o próprio observer.
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const ro = new ResizeObserver(() => ajustar())
+    let ultimaLargura = el.clientWidth
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth
+      if (w !== ultimaLargura) { ultimaLargura = w; ajustar() }
+    })
     ro.observe(el)
     window.addEventListener('resize', ajustar)
     return () => { ro.disconnect(); window.removeEventListener('resize', ajustar) }
@@ -105,10 +116,12 @@ function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
         onFocus={() => setFocado(true)}
         onBlur={() => {
           setFocado(false)
-          if (texto !== valor) { onSave(texto); toast.success('Canvas salvo', { id: 'canvas-save' }) }
+          if (texto !== limpo) { onSave(texto); toast.success('Canvas salvo', { id: 'canvas-save' }) }
         }}
         className={cn(
-          'flex-1 w-full resize-none overflow-hidden bg-transparent px-3.5 py-3 outline-none whitespace-pre-wrap',
+          // overflow-y-auto (não hidden) é rede de segurança: se a medição falhar,
+          // o texto rola — nunca fica invisível.
+          'flex-1 w-full resize-none overflow-y-auto bg-transparent px-3.5 py-3 outline-none whitespace-pre-wrap',
           'text-slate-700 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 placeholder:italic',
           leitura ? 'text-[14.5px] leading-[1.75]' : 'text-[13px] leading-[1.6]'
         )}
