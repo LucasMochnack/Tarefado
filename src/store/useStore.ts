@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { arrayMove } from '@dnd-kit/sortable'
-import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana, Anotacao } from '@/types'
+import { Tarefa, Projeto, StatusTarefa, TarefaRecorrente, DiaSemana, Anotacao, CanvasProjeto } from '@/types'
+import { canvasesDe } from '@/utils/canvas'
 import { TAREFAS_INICIAIS, PROJETOS_INICIAIS } from '@/data/mockData'
 import { calcularScore, calcularProgressoProjeto } from '@/utils/priority'
 import { todayISO, addDaysISO } from '@/utils/dates'
@@ -101,6 +102,10 @@ interface AppStore {
   updateProjeto: (id: string, data: Partial<Projeto>) => void
   deleteProjeto: (id: string) => void
   reordenarProjetos: (orderedIds: string[]) => void
+
+  addCanvas: (projetoId: string, nome: string) => string
+  updateCanvas: (projetoId: string, canvasId: string, data: Partial<CanvasProjeto>) => void
+  deleteCanvas: (projetoId: string, canvasId: string) => void
 
   toggleDarkMode: () => void
   toggleAnotacoesPainel: () => void
@@ -364,6 +369,48 @@ export const useStore = create<AppStore>()(
           projetos: state.projetos.map(p =>
             p.id === id ? { ...p, ...data, atualizadoEm: todayISO() } : p
           ),
+        }))
+      },
+
+      // ── Canvas (Project Model Canvas) — vários por projeto ──
+      // Escrevem sempre na lista normalizada, então o formato antigo (projeto.canvas)
+      // é convertido na primeira alteração.
+      addCanvas: (projetoId, nome) => {
+        const novoId = `cnv-${gerarId()}`
+        const agora = todayISO()
+        set(state => ({
+          projetos: state.projetos.map(p => p.id !== projetoId ? p : {
+            ...p,
+            canvases: [...canvasesDe(p), { id: novoId, nome, criadoEm: agora, atualizadoEm: agora }],
+            canvas: undefined,
+            atualizadoEm: agora,
+          }),
+        }))
+        return novoId
+      },
+
+      updateCanvas: (projetoId, canvasId, data) => {
+        const agora = todayISO()
+        set(state => ({
+          projetos: state.projetos.map(p => p.id !== projetoId ? p : {
+            ...p,
+            canvases: canvasesDe(p).map(c =>
+              c.id === canvasId ? { ...c, ...data, atualizadoEm: agora } : c
+            ),
+            canvas: undefined,
+            atualizadoEm: agora,
+          }),
+        }))
+      },
+
+      deleteCanvas: (projetoId, canvasId) => {
+        set(state => ({
+          projetos: state.projetos.map(p => p.id !== projetoId ? p : {
+            ...p,
+            canvases: canvasesDe(p).filter(c => c.id !== canvasId),
+            canvas: undefined,
+            atualizadoEm: todayISO(),
+          }),
         }))
       },
 
