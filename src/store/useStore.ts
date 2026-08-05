@@ -65,6 +65,7 @@ interface AppStore {
   anotacoes: Anotacao[]
   darkMode: boolean
   anotacoesPainelAberto: boolean
+  canvasModoGrade: boolean   // true = grade do canvas (FGV); false = modo leitura
   autenticado: boolean
   authInicializado: boolean
   usuarioNome: string
@@ -109,6 +110,7 @@ interface AppStore {
 
   toggleDarkMode: () => void
   toggleAnotacoesPainel: () => void
+  setCanvasModoGrade: (v: boolean) => void
 }
 
 function gerarId(): string {
@@ -142,6 +144,7 @@ export const useStore = create<AppStore>()(
       anotacoes: [],
       darkMode: true,
       anotacoesPainelAberto: true,
+      canvasModoGrade: false,
       projetoSelecionado: null,
       autenticado: false,
       authInicializado: false,
@@ -446,6 +449,8 @@ export const useStore = create<AppStore>()(
 
       toggleAnotacoesPainel: () => set(state => ({ anotacoesPainelAberto: !state.anotacoesPainelAberto })),
 
+      setCanvasModoGrade: (v) => set({ canvasModoGrade: v }),
+
       setProjetoSelecionado: (id) => set({ projetoSelecionado: id }),
 
       // Reflete a sessão do Supabase Auth no estado do app (chamado pelo listener de auth)
@@ -516,6 +521,7 @@ export const useStore = create<AppStore>()(
         anotacoes: state.anotacoes,
         darkMode: state.darkMode,
         anotacoesPainelAberto: state.anotacoesPainelAberto,
+        canvasModoGrade: state.canvasModoGrade,
       }),
     }
   )

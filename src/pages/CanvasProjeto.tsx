@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { LayoutGrid, Folder, Plus, Trash2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { LayoutGrid, Folder, Plus, Trash2, AlignLeft } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useProjetosPermitidos } from '@/hooks/useProjetosPermitidos'
 import { CanvasProjeto as CanvasData } from '@/types'
@@ -8,8 +8,10 @@ import { formatRelative } from '@/utils/dates'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-// Blocos do Project Model Canvas (FGV) — mesma grade do Excel de referência
-const BLOCOS: { campo: CampoCanvas; titulo: string; hint: string; area: string }[] = [
+type Bloco = { campo: CampoCanvas; titulo: string; hint: string; area: string }
+
+// Blocos do Project Model Canvas (FGV) — mesma estrutura do Excel de referência
+const BLOCOS: Bloco[] = [
   { campo: 'objetivo',        titulo: 'Objetivo do Projeto',       hint: 'O que o projeto entrega, para quem e com que resultado.',   area: 'obj' },
   { campo: 'justificativas',  titulo: 'Justificativas (passado)',  hint: 'O problema ou contexto que motivou o projeto.',             area: 'jus' },
   { campo: 'objetivoSmart',   titulo: 'Objetivo SMART',            hint: 'Específico, mensurável, atingível, relevante e com prazo.', area: 'sma' },
@@ -27,6 +29,8 @@ const BLOCOS: { campo: CampoCanvas; titulo: string; hint: string; area: string }
   { campo: 'pendencias',      titulo: 'Pendências — em aberto no canvas', hint: 'Dúvidas e decisões que ainda precisam de resposta.', area: 'pen' },
 ]
 
+const porCampo = (campo: CampoCanvas) => BLOCOS.find(b => b.campo === campo)!
+
 // Grade fiel ao Excel (5 colunas: Por quê / O quê / Quem / Como / Quando & Quanto)
 const GRID_AREAS = `
   "obj obj obj obj obj"
@@ -38,9 +42,21 @@ const GRID_AREAS = `
 
 const GRUPOS = ['Por quê?', 'O quê?', 'Quem?', 'Como?', 'Quando e quanto?']
 
-/** Bloco editável: salva ao sair do campo; aceita atualização remota fora de edição. */
-function Bloco({ titulo, hint, valor, destaque, onSave }: {
-  titulo: string; hint: string; valor: string; destaque?: boolean; onSave: (v: string) => void
+// Modo leitura: os mesmos blocos, agrupados pelas perguntas do canvas
+const GRUPOS_LEITURA: { titulo: string; campos: CampoCanvas[] }[] = [
+  { titulo: 'Por quê?',         campos: ['justificativas', 'objetivoSmart', 'beneficios'] },
+  { titulo: 'O quê?',           campos: ['produto', 'requisitos'] },
+  { titulo: 'Quem?',            campos: ['fatoresExternos', 'equipe'] },
+  { titulo: 'Como?',            campos: ['premissas', 'entregas', 'restricoes'] },
+  { titulo: 'Quando e quanto?', campos: ['riscos', 'linhaDoTempo', 'custos'] },
+]
+
+/**
+ * Bloco editável. A altura acompanha o conteúdo (min-height medido), então o texto
+ * nunca fica com barra de rolagem interna. Salva ao sair do campo.
+ */
+function BlocoEditavel({ titulo, hint, valor, destaque, leitura, onSave }: {
+  titulo: string; hint: string; valor: string; destaque?: boolean; leitura?: boolean; onSave: (v: string) => void
 }) {
   const [texto, setTexto] = useState(valor)
   const [focado, setFocado] = useState(false)
@@ -48,10 +64,27 @@ function Bloco({ titulo, hint, valor, destaque, onSave }: {
 
   useEffect(() => { if (!focado) setTexto(valor) }, [valor, focado])
 
+  // Mede o conteúdo e fixa como min-height: com flex-1 o campo ainda estica pra
+  // preencher a linha da grade, mas nunca encolhe abaixo do texto (sem scroll interno).
+  const ajustar = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.minHeight = '0px'
+    const h = el.scrollHeight
+    el.style.minHeight = `${Math.max(h, 64)}px`
+  }, [])
+
+  useEffect(() => { ajustar() }, [texto, ajustar])
+
+  // Re-mede quando a largura muda (texto reflui): troca de modo, resize, sidebar
   useEffect(() => {
     const el = ref.current
-    if (el) { el.style.height = 'auto'; el.style.height = `${Math.max(el.scrollHeight, 72)}px` }
-  }, [texto, focado])
+    if (!el) return
+    const ro = new ResizeObserver(() => ajustar())
+    ro.observe(el)
+    window.addEventListener('resize', ajustar)
+    return () => { ro.disconnect(); window.removeEventListener('resize', ajustar) }
+  }, [ajustar])
 
   return (
     <div className={cn(
@@ -74,7 +107,11 @@ function Bloco({ titulo, hint, valor, destaque, onSave }: {
           setFocado(false)
           if (texto !== valor) { onSave(texto); toast.success('Canvas salvo', { id: 'canvas-save' }) }
         }}
-        className="flex-1 w-full min-h-[72px] resize-none px-3 py-2.5 bg-transparent text-[13px] leading-relaxed text-slate-700 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 placeholder:italic outline-none whitespace-pre-wrap"
+        className={cn(
+          'flex-1 w-full resize-none overflow-hidden bg-transparent px-3.5 py-3 outline-none whitespace-pre-wrap',
+          'text-slate-700 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 placeholder:italic',
+          leitura ? 'text-[14.5px] leading-[1.75]' : 'text-[13px] leading-[1.6]'
+        )}
         spellCheck={false}
       />
     </div>
@@ -108,7 +145,11 @@ function NomeCanvas({ valor, onSave }: { valor: string; onSave: (v: string) => v
 }
 
 export function CanvasProjeto() {
-  const { projetos, projetoSelecionado, setProjetoSelecionado, addCanvas, updateCanvas, deleteCanvas } = useStore()
+  const {
+    projetos, projetoSelecionado, setProjetoSelecionado,
+    addCanvas, updateCanvas, deleteCanvas,
+    canvasModoGrade, setCanvasModoGrade,
+  } = useStore()
   const projetosPermitidos = useProjetosPermitidos()
 
   const visiveis = projetosPermitidos
@@ -131,11 +172,29 @@ export function CanvasProjeto() {
 
   const criar = () => {
     if (!projeto) return
-    const n = canvases.length + 1
-    const id = addCanvas(projeto.id, `Canvas ${n}`)
+    const id = addCanvas(projeto.id, `Canvas ${canvases.length + 1}`)
     setCanvasIdSel(id)
     toast.success('Canvas criado')
   }
+
+  const campo = (b: Bloco, leitura: boolean) => (
+    <BlocoEditavel
+      key={b.campo}
+      titulo={b.titulo}
+      hint={b.hint}
+      valor={canvas?.[b.campo] ?? ''}
+      destaque={b.campo === 'objetivo'}
+      leitura={leitura}
+      onSave={v => projeto && canvas && updateCanvas(projeto.id, canvas.id, { [b.campo]: v })}
+    />
+  )
+
+  const btnModo = (ativo: boolean) => cn(
+    'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors',
+    ativo
+      ? 'bg-indigo-600 text-white'
+      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-600'
+  )
 
   return (
     <div className="p-6 space-y-5 max-w-screen-2xl mx-auto">
@@ -147,9 +206,20 @@ export function CanvasProjeto() {
             Project Model Canvas — cada projeto pode ter mais de um
           </p>
         </div>
-        {canvas?.atualizadoEm && (
-          <span className="text-[11px] text-slate-400 font-medium">Atualizado {formatRelative(canvas.atualizadoEm)}</span>
-        )}
+        <div className="flex items-center gap-3">
+          {canvas?.atualizadoEm && (
+            <span className="text-[11px] text-slate-400 font-medium">Atualizado {formatRelative(canvas.atualizadoEm)}</span>
+          )}
+          {/* Modo de visualização */}
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden" role="group" aria-label="Modo de visualização">
+            <button onClick={() => setCanvasModoGrade(false)} className={btnModo(!canvasModoGrade)} aria-pressed={!canvasModoGrade}>
+              <AlignLeft size={13} /> Leitura
+            </button>
+            <button onClick={() => setCanvasModoGrade(true)} className={btnModo(canvasModoGrade)} aria-pressed={canvasModoGrade}>
+              <LayoutGrid size={13} /> Grade
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Seletor de projeto */}
@@ -252,32 +322,42 @@ export function CanvasProjeto() {
                 </div>
               </div>
 
-              {/* Grupos de perguntas (colunas do canvas FGV) */}
-              <div className="hidden xl:grid grid-cols-5 gap-3">
-                {GRUPOS.map(g => (
-                  <div key={g} className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">{g}</div>
-                ))}
-              </div>
-
-              {/* Grade do canvas */}
-              <div
-                className="grid gap-3 grid-cols-1 xl:[grid-template-areas:var(--areas)] xl:grid-cols-5"
-                style={{ ['--areas' as string]: GRID_AREAS }}
-              >
-                {BLOCOS.map(b => (
-                  <div key={b.campo} className="xl:[grid-area:var(--a)] flex" style={{ ['--a' as string]: b.area }}>
-                    <div className="flex-1 flex flex-col">
-                      <Bloco
-                        titulo={b.titulo}
-                        hint={b.hint}
-                        valor={canvas[b.campo] ?? ''}
-                        destaque={b.campo === 'objetivo'}
-                        onSave={v => updateCanvas(projeto.id, canvas.id, { [b.campo]: v })}
-                      />
-                    </div>
+              {canvasModoGrade ? (
+                /* ── GRADE: layout do canvas FGV (5 colunas) ── */
+                <>
+                  <div className="hidden xl:grid grid-cols-5 gap-3">
+                    {GRUPOS.map(g => (
+                      <div key={g} className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">{g}</div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  <div
+                    className="grid gap-3 grid-cols-1 xl:[grid-template-areas:var(--areas)] xl:grid-cols-5"
+                    style={{ ['--areas' as string]: GRID_AREAS }}
+                  >
+                    {BLOCOS.map(b => (
+                      <div key={b.campo} className="xl:[grid-area:var(--a)] flex" style={{ ['--a' as string]: b.area }}>
+                        <div className="flex-1 flex flex-col">{campo(b, false)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                /* ── LEITURA: uma coluna na medida de leitura, agrupada pelas perguntas ── */
+                <div className="max-w-2xl space-y-7">
+                  {campo(porCampo('objetivo'), true)}
+
+                  {GRUPOS_LEITURA.map(g => (
+                    <section key={g.titulo} className="space-y-3">
+                      <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                        {g.titulo}
+                      </h2>
+                      {g.campos.map(c => campo(porCampo(c), true))}
+                    </section>
+                  ))}
+
+                  {campo(porCampo('pendencias'), true)}
+                </div>
+              )}
 
               <p className="text-[11px] text-slate-400 italic">
                 Dica: escreva em tópicos (um por linha). Salva ao sair do campo e sincroniza na nuvem.
