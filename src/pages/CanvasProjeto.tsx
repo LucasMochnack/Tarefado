@@ -48,8 +48,8 @@ const normalizar = (v: string) => v.replace(/\r\n?/g, '\n').replace(/\n+$/, '')
  * Caixa da grade: só prévia (sem campo de edição), então a grade fica compacta e
  * fiel ao Excel. Clicar abre o bloco expandido.
  */
-function CaixaCanvas({ titulo, hint, valor, largo, onAbrir }: {
-  titulo: string; hint: string; valor: string; largo?: boolean; onAbrir: () => void
+function CaixaCanvas({ titulo, hint, valor, onAbrir }: {
+  titulo: string; hint: string; valor: string; onAbrir: () => void
 }) {
   const texto = normalizar(valor)
   const vazio = texto.trim() === ''
@@ -87,8 +87,7 @@ function CaixaCanvas({ titulo, hint, valor, largo, onAbrir }: {
           'group-hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 dark:group-hover:[&::-webkit-scrollbar-thumb]:bg-slate-600',
           vazio
             ? 'text-slate-400/70 dark:text-slate-600 italic'
-            : 'text-slate-700 dark:text-slate-300',
-          largo ? 'max-h-[6rem]' : 'max-h-[11.9rem]'
+            : 'text-slate-700 dark:text-slate-300'
         )}
       >
         {vazio ? hint : texto}
@@ -340,30 +339,38 @@ export function CanvasProjeto() {
                 ))}
               </div>
 
-              {/* Grade do canvas — igual ao Excel */}
+              {/* Grade do canvas — igual ao Excel.
+                  A ALTURA fica nas linhas da grade (não na prévia): assim a caixa que
+                  ocupa duas linhas, como Requisitos, tem a prévia preenchendo tudo,
+                  sem vão em branco. */}
               <div
-                className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:[grid-template-areas:var(--areas)] xl:grid-cols-5"
+                className={cn(
+                  'grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5',
+                  'xl:[grid-template-areas:var(--areas)] xl:[grid-template-rows:7rem_13.5rem_13.5rem_13.5rem_7rem]'
+                )}
                 style={{ ['--areas' as string]: GRID_AREAS }}
               >
-                {BLOCOS.map(b => (
-                  <div
-                    key={b.campo}
-                    className={cn(
-                      'xl:[grid-area:var(--a)] min-h-[9.5rem]',
-                      // Objetivo e Pendências ocupam a largura toda: caixa mais baixa
-                      (b.campo === 'objetivo' || b.campo === 'pendencias') && 'sm:col-span-2 xl:col-span-full min-h-[7rem]'
-                    )}
-                    style={{ ['--a' as string]: b.area }}
-                  >
-                    <CaixaCanvas
-                      titulo={b.titulo}
-                      hint={b.hint}
-                      valor={canvas[b.campo] ?? ''}
-                      largo={b.campo === 'objetivo' || b.campo === 'pendencias'}
-                      onAbrir={() => setExpandido(b.campo)}
-                    />
-                  </div>
-                ))}
+                {BLOCOS.map(b => {
+                  const largura = b.campo === 'objetivo' || b.campo === 'pendencias'
+                  return (
+                    <div
+                      key={b.campo}
+                      className={cn(
+                        // abaixo de xl não há linhas de grade, então a altura vem daqui
+                        'xl:[grid-area:var(--a)] h-56 xl:h-auto',
+                        largura && 'sm:col-span-2 xl:col-span-full h-28 xl:h-auto'
+                      )}
+                      style={{ ['--a' as string]: b.area }}
+                    >
+                      <CaixaCanvas
+                        titulo={b.titulo}
+                        hint={b.hint}
+                        valor={canvas[b.campo] ?? ''}
+                        onAbrir={() => setExpandido(b.campo)}
+                      />
+                    </div>
+                  )
+                })}
               </div>
 
               {blocoAberto && (
